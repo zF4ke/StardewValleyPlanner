@@ -111,6 +111,35 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
   };
 }
 
+export type CalendarEventKind = 'plant' | 'water' | 'harvest' | 'regrowHarvest';
+
+export interface CalendarEvent {
+  day: number;        // day-of-season the event lands on (may exceed 28 for multi-season views)
+  kind: CalendarEventKind;
+}
+
+/** Generates plant/water/harvest events from the selected day through the final harvest.
+ *  Days are expressed relative to the *selected* season; values >28 mean the next season. */
+export function calendarEvents(
+  crop: Crop,
+  season: Season,
+  day: number
+): CalendarEvent[] {
+  const offsets = harvestOffsets(crop, season, day);
+  if (offsets.length === 0) return [];
+  const events: CalendarEvent[] = [{ day, kind: 'plant' }];
+  const lastHarvest = offsets[offsets.length - 1];
+  const harvestDays = new Set(offsets.map((o) => day + o));
+  for (let d = day + 1; d <= day + lastHarvest; d++) {
+    if (harvestDays.has(d)) continue;
+    events.push({ day: d, kind: 'water' });
+  }
+  offsets.forEach((o, i) => {
+    events.push({ day: day + o, kind: i === 0 ? 'harvest' : 'regrowHarvest' });
+  });
+  return events;
+}
+
 /** Ranks crops by net profit descending — the single goal of the planner. */
 export function rankCrops(crops: Crop[], input: PlannerInput): CropPlan[] {
   return crops

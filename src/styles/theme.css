@@ -31,25 +31,12 @@ html, body, #root {
 
 body {
   background:
-    linear-gradient(180deg, var(--sv-sky-1) 0%, var(--sv-sky-2) 55%, var(--sv-grass) 55%, #4ea137 100%) fixed;
+    linear-gradient(rgba(40, 25, 12, 0.45), rgba(40, 25, 12, 0.55)),
+    url('/assets/background.png') center / cover fixed,
+    linear-gradient(180deg, var(--sv-sky-1) 0%, var(--sv-grass) 100%);
   min-height: 100vh;
 }
-
-/* Pixel cloud strip across the sky */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0 0 auto 0;
-  height: 55vh;
-  pointer-events: none;
-  background-image:
-    radial-gradient(circle at 10% 30%, #fff 12px, transparent 13px),
-    radial-gradient(circle at 25% 22%, #fff 16px, transparent 17px),
-    radial-gradient(circle at 70% 18%, #fff 18px, transparent 19px),
-    radial-gradient(circle at 85% 28%, #fff 14px, transparent 15px);
-  opacity: 0.7;
-  filter: drop-shadow(0 2px 0 rgba(0,0,0,.08));
-}
+body img, .pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
 
 .app {
   max-width: 1180px;
@@ -76,12 +63,14 @@ body::before {
   opacity: 0.95;
 }
 
-/* Wood-framed parchment panel */
+/* Wood-framed parchment panel — sharper pixel feel: chunky outline, no soft radius */
 .panel {
   background: var(--sv-parchment);
-  border: 4px solid var(--sv-wood);
-  border-radius: 10px;
-  box-shadow: var(--sv-shadow), inset 0 0 0 2px var(--sv-parchment-edge);
+  border: 4px solid #2b1a0a;
+  outline: 4px solid var(--sv-wood);
+  outline-offset: -8px;
+  border-radius: 4px;
+  box-shadow: 0 4px 0 #2b1a0a, 0 10px 18px rgba(0,0,0,.35), inset 0 0 0 2px var(--sv-parchment-edge);
   padding: 18px 18px;
   margin: 18px 0;
 }
@@ -196,15 +185,20 @@ body::before {
 }
 .card {
   background: #fffaea;
-  border: 3px solid var(--sv-wood);
-  border-radius: 10px;
-  padding: 12px 14px;
-  box-shadow: 0 2px 0 var(--sv-wood-light);
+  border: 3px solid #2b1a0a;
+  outline: 3px solid var(--sv-wood);
+  outline-offset: -6px;
+  border-radius: 3px;
+  padding: 14px 14px 12px;
+  box-shadow: 0 3px 0 #2b1a0a, 0 6px 12px rgba(0,0,0,.25);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   position: relative;
 }
+.card.clickable { cursor: pointer; transition: transform .08s ease, box-shadow .08s ease; }
+.card.clickable:hover { transform: translateY(-2px); box-shadow: 0 5px 0 #2b1a0a, 0 10px 18px rgba(0,0,0,.3); }
+.card.clickable:focus-visible { outline-color: var(--sv-accent-summer); }
 .card .rank {
   position: absolute;
   top: -10px;
@@ -322,3 +316,157 @@ footer {
   font-size: 0.85rem;
 }
 footer a { color: #fff3c4; }
+
+/* -------- Calendar drawer -------- */
+.drawer-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(20, 10, 4, 0.55);
+  z-index: 50;
+  animation: fade-in .15s ease;
+}
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(460px, 100vw);
+  background: var(--sv-parchment);
+  border-left: 6px solid #2b1a0a;
+  box-shadow: -8px 0 0 var(--sv-wood), -10px 0 24px rgba(0,0,0,.4);
+  z-index: 51;
+  padding: 18px 18px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: slide-in .18s ease;
+}
+@keyframes slide-in { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+.drawer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px dashed var(--sv-parchment-edge);
+  padding-bottom: 10px;
+}
+.drawer-title { display: flex; gap: 10px; align-items: flex-start; }
+.drawer-title .emoji { font-size: 2rem; line-height: 1; }
+.drawer-title .crop-name { font-size: 1.25rem; font-weight: 700; color: var(--sv-wood); }
+.drawer-title .source-line { font-size: 0.8rem; color: #7a5a30; }
+.drawer-close {
+  background: var(--sv-accent-summer);
+  border: 2px solid #2b1a0a;
+  width: 32px; height: 32px;
+  font-size: 1.3rem; font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 0 #2b1a0a;
+  border-radius: 3px;
+}
+.drawer-close:hover { transform: translateY(-1px); }
+.drawer-section h3 {
+  margin: 0 0 8px;
+  color: var(--sv-wood);
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Calendar grid */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  background: #2b1a0a;
+  padding: 3px;
+  border: 2px solid #2b1a0a;
+}
+.cal-head {
+  background: var(--sv-wood);
+  color: #fff8e7;
+  text-align: center;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  padding: 4px 0;
+  text-transform: uppercase;
+}
+.cal-cell {
+  position: relative;
+  background: #fffaea;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: #7a5a30;
+}
+.cal-cell .cal-day {
+  position: absolute;
+  top: 2px; left: 4px;
+  font-size: 0.65rem;
+  color: #7a5a30;
+}
+.cal-cell .cal-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.cal-cell.k-plant         { background: #cfe9bf; color: #2f5a18; }
+.cal-cell.k-water         { background: #c6e0f0; color: #1f4a6a; }
+.cal-cell.k-harvest       { background: var(--sv-accent-summer); color: #5a3a05; }
+.cal-cell.k-regrowHarvest { background: #f3d66b; color: #5a3a05; box-shadow: inset 0 0 0 2px #a55b18; }
+
+.cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: #5a3a1c;
+}
+.cal-legend .swatch {
+  display: inline-block;
+  width: 12px; height: 12px;
+  border: 1px solid #2b1a0a;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.swatch.k-plant         { background: #cfe9bf; }
+.swatch.k-water         { background: #c6e0f0; }
+.swatch.k-harvest       { background: var(--sv-accent-summer); }
+.swatch.k-regrowHarvest { background: #f3d66b; }
+
+/* Drawer key-value grid */
+.kv-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  font-size: 0.85rem;
+}
+.kv-grid div {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dotted var(--sv-parchment-edge);
+  padding: 2px 0;
+}
+.kv-grid span { color: #7a5a30; }
+.kv-grid b.profit { color: var(--sv-good); }
+.kv-grid b.profit.neg { color: var(--sv-bad); }
+
+.harvest-dates {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #5a3a1c;
+  background: #f6e9c1;
+  border: 1px dashed var(--sv-parchment-edge);
+  padding: 6px 8px;
+}
+.harvest-dates .kv-label { color: #7a5a30; font-weight: 700; }
+
+.note-line {
+  margin: 4px 0;
+  font-size: 0.82rem;
+  color: #5a3a1c;
+}
+
+@media (max-width: 520px) {
+  .drawer { width: 100vw; }
+}

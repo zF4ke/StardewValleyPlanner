@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Controls } from './components/Controls';
+import { CropCalendarDrawer } from './components/CropCalendarDrawer';
 import { CropCard } from './components/CropCard';
 import { DEFAULT_ENABLED, Filters } from './components/Filters';
 import { CROPS } from './data/crops';
@@ -12,6 +13,7 @@ export default function App() {
   const [money, setMoney] = useState(500);
   const [quality, setQuality] = useState<Quality>('Regular');
   const [enabled, setEnabled] = useState<SeedSource[]>(DEFAULT_ENABLED);
+  const [selectedCrop, setSelectedCrop] = useState<string | null>(null);
 
   const plans = useMemo(
     () => rankCrops(CROPS, { season, day, money, quality, enabledSources: enabled }),
@@ -54,11 +56,28 @@ export default function App() {
         ) : (
           <div className="results">
             {plans.map((p, i) => (
-              <CropCard key={p.crop.name} plan={p} rank={i + 1} />
+              <CropCard
+                key={p.crop.name}
+                plan={p}
+                rank={i + 1}
+                onSelect={() => setSelectedCrop(p.crop.name)}
+              />
             ))}
           </div>
         )}
       </section>
+
+      {selectedCrop && (() => {
+        const plan = plans.find((p) => p.crop.name === selectedCrop);
+        return plan ? (
+          <CropCalendarDrawer
+            plan={plan}
+            season={season}
+            day={day}
+            onClose={() => setSelectedCrop(null)}
+          />
+        ) : null;
+      })()}
 
       <footer>
         Data from the <a href="https://stardewvalleywiki.com/Crops" target="_blank" rel="noreferrer">Stardew Valley Wiki</a>.

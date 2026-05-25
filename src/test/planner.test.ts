@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  calendarEvents,
   harvestOffsets,
   offsetToDate,
   planCrop,
@@ -94,6 +95,40 @@ describe('money math', () => {
     expect(qualitySellPrice(PARSNIP, 'Silver')).toBe(Math.floor(35 * 1.25));
     expect(qualitySellPrice(PARSNIP, 'Gold')).toBe(Math.floor(35 * 1.5));
     expect(qualitySellPrice(PARSNIP, 'Iridium')).toBe(70);
+  });
+});
+
+describe('calendar events', () => {
+  it('5-day crop on day 1 marks plant day 1, water days 2-5, harvest day 6', () => {
+    const fiveDay = { ...PARSNIP, growthDays: 5 };
+    const evs = calendarEvents(fiveDay, 'Spring', 1);
+    const plant = evs.filter((e) => e.kind === 'plant').map((e) => e.day);
+    const water = evs.filter((e) => e.kind === 'water').map((e) => e.day);
+    const harvest = evs.filter((e) => e.kind === 'harvest').map((e) => e.day);
+    expect(plant).toEqual([1]);
+    expect(water).toEqual([2, 3, 4, 5]);
+    expect(harvest).toEqual([6]);
+  });
+
+  it('regrowth crops mark first harvest and regrowHarvest separately', () => {
+    const blueberry = CROPS.find((c) => c.name === 'Blueberry')!;
+    const evs = calendarEvents(blueberry, 'Summer', 1);
+    const firsts = evs.filter((e) => e.kind === 'harvest').map((e) => e.day);
+    const regrows = evs.filter((e) => e.kind === 'regrowHarvest').map((e) => e.day);
+    expect(firsts).toEqual([14]);            // planted day 1, harvest at day 1 + 13
+    expect(regrows).toEqual([18, 22, 26]);
+  });
+
+  it('crop that cannot mature before season end yields no events', () => {
+    const evs = calendarEvents(PARSNIP, 'Spring', 26);
+    expect(evs).toEqual([]);
+  });
+
+  it('multi-season crop still produces correct harvest days beyond day 28', () => {
+    const evs = calendarEvents(CORN, 'Summer', 20);
+    // First harvest at 20 + 14 = day 34 (Fall 6 effectively).
+    const firstHarvest = evs.find((e) => e.kind === 'harvest');
+    expect(firstHarvest?.day).toBe(34);
   });
 });
 
