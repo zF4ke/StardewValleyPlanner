@@ -2,7 +2,7 @@
 
 # 🌻 Stardew Workshop
 
-*Pick a date. Set your gold. Plant the crops that will actually pay rent.*
+*Pick a date. Set your gold. Plant the crops Grandpa would be proud of.*
 
 <img src="docs/banner2.png" alt="Stardew Workshop" width="640" />
 
