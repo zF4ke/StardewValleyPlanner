@@ -8,6 +8,15 @@ export interface PatchNote {
 /** Newest first. The first entry is treated as the current app version. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: 'v0.5.0',
+    title: 'Visual Polish',
+    bullets: [
+      'Added a light/dark theme toggle.',
+      'Replaced platform emoji with consistent SVG icons.',
+      'Added icons to seed source filters and improved calendar icon contrast.',
+    ],
+  },
+  {
     version: 'v0.4.0',
     title: 'Fertilizer Update',
     bullets: [

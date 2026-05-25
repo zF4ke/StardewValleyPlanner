@@ -1,7 +1,9 @@
 import { SeedSource } from '../domain/types';
+import { Icon } from './Icon';
 
 interface SourceDef {
   id: SeedSource;
+  emoji: string;
   label: string;
   tip: string;
   defaultOn: boolean;
@@ -9,16 +11,16 @@ interface SourceDef {
 }
 
 export const ALL_SOURCES: SourceDef[] = [
-  { id: 'Pierre',         label: "Pierre's",        tip: 'General Store',           defaultOn: true,  group: 'Normal shops' },
-  { id: 'JojaMart',       label: 'JojaMart',        tip: 'Same seeds as Pierre',    defaultOn: true,  group: 'Normal shops' },
-  { id: 'EggFestival',    label: 'Egg Festival',    tip: 'Strawberry, Spring 13',   defaultOn: false, group: 'Festival' },
-  { id: 'Oasis',          label: 'Oasis',           tip: 'Desert shop',             defaultOn: false, group: 'Desert' },
-  { id: 'IslandTrader',   label: 'Island Trader',   tip: 'Ginger Island trade',     defaultOn: false, group: 'Island' },
-  { id: 'TravelingCart',  label: 'Traveling Cart',  tip: 'Random Fri/Sun cart',     defaultOn: false, group: 'Random / Special' },
-  { id: 'Crafted',        label: 'Crafted',         tip: 'Made from a recipe',      defaultOn: false, group: 'Random / Special' },
-  { id: 'Drop',           label: 'Drop / Quest',    tip: 'Drops, foraging, quests', defaultOn: false, group: 'Random / Special' },
-  { id: 'SeedMaker',      label: 'Seed Maker',      tip: 'Only via Seed Maker',     defaultOn: false, group: 'Random / Special' },
-  { id: 'Special',        label: 'Special',         tip: 'Ancient Fruit etc.',      defaultOn: false, group: 'Random / Special' },
+  { id: 'Pierre',         emoji: '🌱', label: "Pierre's",        tip: 'General Store',           defaultOn: true,  group: 'Normal shops' },
+  { id: 'JojaMart',       emoji: '🟪', label: 'JojaMart',        tip: 'Same seeds as Pierre',    defaultOn: true,  group: 'Normal shops' },
+  { id: 'EggFestival',    emoji: '🍓', label: 'Egg Festival',    tip: 'Strawberry, Spring 13',   defaultOn: false, group: 'Festival' },
+  { id: 'Oasis',          emoji: '🌵', label: 'Oasis',           tip: 'Desert shop',             defaultOn: false, group: 'Desert' },
+  { id: 'IslandTrader',   emoji: '🌳', label: 'Island Trader',   tip: 'Ginger Island trade',     defaultOn: false, group: 'Island' },
+  { id: 'TravelingCart',  emoji: '🌻', label: 'Traveling Cart',  tip: 'Random Fri/Sun cart',     defaultOn: false, group: 'Random / Special' },
+  { id: 'Crafted',        emoji: '🧪', label: 'Crafted',         tip: 'Made from a recipe',      defaultOn: false, group: 'Random / Special' },
+  { id: 'Drop',           emoji: '⭐', label: 'Drop / Quest',    tip: 'Drops, foraging, quests', defaultOn: false, group: 'Random / Special' },
+  { id: 'SeedMaker',      emoji: '🫛', label: 'Seed Maker',      tip: 'Only via Seed Maker',     defaultOn: false, group: 'Random / Special' },
+  { id: 'Special',        emoji: '💎', label: 'Special',         tip: 'Ancient Fruit etc.',      defaultOn: false, group: 'Random / Special' },
 ];
 
 export const DEFAULT_ENABLED: SeedSource[] = ALL_SOURCES
@@ -67,6 +69,7 @@ export function Filters({ enabled, onChange }: Props) {
                 onClick={() => toggle(s.id)}
                 title={s.tip}
               >
+                <Icon emoji={s.emoji} className="chip-icon" />
                 {s.label}
               </button>
             ))}
