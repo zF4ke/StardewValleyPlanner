@@ -7,6 +7,7 @@
 <img src="docs/banner2.png" alt="Stardew Workshop" width="640" />
 
 <br />
+<br />
 
 [![Built with Vite](https://img.shields.io/badge/built%20with-Vite-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
 [![React 18](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev)
