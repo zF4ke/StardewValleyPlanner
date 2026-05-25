@@ -1,5 +1,6 @@
 import { FERTILIZERS } from '../data/fertilizers';
 import { FarmingLevel, FertilizerId, Quality, Season, SEASONS } from '../domain/types';
+import { Icon } from './Icon';
 
 interface Props {
   season: Season;
@@ -24,7 +25,7 @@ export function Controls({
   return (
     <section className="panel">
       <div className="panel-head">
-        <h2>🌱 Plan your season</h2>
+        <h2><Icon emoji="🌱" /> Plan your season</h2>
       </div>
 
       <div className="field" style={{ minWidth: 0 }}>
@@ -89,7 +90,7 @@ export function Controls({
             onChange={(e) => onChange({ fertilizerId: e.target.value as FertilizerId })}
           >
             {fertChoices.map((f) => (
-              <option key={f.id} value={f.id}>{f.emoji} {f.name}</option>
+              <option key={f.id} value={f.id}>{f.name}</option>
             ))}
           </select>
         </div>

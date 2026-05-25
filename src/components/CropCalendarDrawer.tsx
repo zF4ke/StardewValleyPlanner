@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { calendarEvents } from '../domain/planner';
 import { FERTILIZER_BY_ID } from '../data/fertilizers';
 import { CropPlan, DAYS_PER_SEASON, Season } from '../domain/types';
+import { Icon } from './Icon';
 
 interface Props {
   plan: CropPlan;
@@ -57,7 +58,7 @@ export function CropCalendarDrawer({ plan, season, day, onClose }: Props) {
       <aside className="drawer" role="dialog" aria-label={`${crop.name} calendar`}>
         <header className="drawer-head">
           <div className="drawer-title">
-            <span className="emoji" aria-hidden>{crop.emoji ?? '🌱'}</span>
+            <Icon emoji={crop.emoji ?? '🌱'} className="emoji" />
             <div>
               <div className="crop-name">{crop.name}</div>
               <div className="source-line">{crop.seasons.join(' / ')}</div>
@@ -81,7 +82,7 @@ export function CropCalendarDrawer({ plan, season, day, onClose }: Props) {
                   title={kind ? `${KIND_TITLE[kind]} · ${season} ${d}` : `${season} ${d}`}
                 >
                   <span className="cal-day">{d}</span>
-                  {kind && <span className="cal-icon">{KIND_LABEL[kind]}</span>}
+                  {kind && <Icon emoji={KIND_LABEL[kind]} className="cal-icon" />}
                 </div>
               );
             })}

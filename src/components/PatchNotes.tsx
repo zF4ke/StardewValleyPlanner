@@ -1,10 +1,11 @@
 import { PATCH_NOTES } from '../data/patchNotes';
+import { Icon } from './Icon';
 
 export function PatchNotes() {
   return (
     <section className="panel">
       <div className="panel-head">
-        <h2>📜 Patch Notes</h2>
+        <h2><Icon emoji="📜" /> Patch Notes</h2>
         <span className="summary">Newest first · {PATCH_NOTES.length} releases</span>
       </div>
 

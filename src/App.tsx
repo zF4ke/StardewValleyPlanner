@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Controls } from './components/Controls';
 import { CropCalendarDrawer } from './components/CropCalendarDrawer';
 import { CropCard } from './components/CropCard';
 import { DEFAULT_ENABLED, Filters } from './components/Filters';
 import { FertilizerWorkshop } from './components/FertilizerWorkshop';
+import { Icon } from './components/Icon';
 import { PatchNotes } from './components/PatchNotes';
 import { CROPS } from './data/crops';
 import { FERTILIZER_BY_ID } from './data/fertilizers';
@@ -12,9 +13,24 @@ import { rankCrops } from './domain/planner';
 import { FarmingLevel, FertilizerId, Quality, Season, SeedSource } from './domain/types';
 
 type Page = 'planner' | 'workshop' | 'patch';
+type Theme = 'light' | 'dark';
 
 export default function App() {
   const [page, setPage] = useState<Page>('planner');
+  const [theme, setTheme] = useState<Theme>(() => {
+    const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('theme') : null;
+    if (saved === 'light' || saved === 'dark') return saved;
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem('theme', theme); } catch { /* private mode */ }
+  }, [theme]);
+
   const [season, setSeason] = useState<Season>('Spring');
   const [day, setDay] = useState(1);
   const [money, setMoney] = useState(500);
@@ -38,7 +54,7 @@ export default function App() {
   return (
     <div className="app">
       <h1 className="title">
-        🌻 Stardew Workshop
+        <Icon emoji="🌻" className="title-icon" /> Stardew Workshop
         <button
           className="version-pill"
           onClick={() => setPage('patch')}
@@ -46,22 +62,29 @@ export default function App() {
         >{CURRENT_VERSION}</button>
       </h1>
 
+      <button
+        className="theme-toggle"
+        onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+        title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        aria-label="Toggle theme"
+      ><Icon emoji={theme === 'dark' ? '☀️' : '🌙'} /></button>
+
       <nav className="page-nav">
         <button
           className="nav-tab"
           data-active={page === 'planner'}
           onClick={() => setPage('planner')}
-        >🌱 Crop Planner</button>
+        ><Icon emoji="🌱" /> Crop Planner</button>
         <button
           className="nav-tab"
           data-active={page === 'workshop'}
           onClick={() => setPage('workshop')}
-        >🧪 Fertilizer Workshop</button>
+        ><Icon emoji="🧪" /> Fertilizer Workshop</button>
         <button
           className="nav-tab"
           data-active={page === 'patch'}
           onClick={() => setPage('patch')}
-        >📜 Patch Notes</button>
+        ><Icon emoji="📜" /> Patch Notes</button>
       </nav>
 
       {page === 'planner' && (
@@ -97,7 +120,7 @@ export default function App() {
             <div className="panel-head">
               <h2>Best profit before season end</h2>
               <span className="summary">
-                {season} {day} · Farming L{farmingLevel} · {fert.emoji} {fert.name} · {plans.length} match{plans.length === 1 ? '' : 'es'}
+                {season} {day} · Farming L{farmingLevel} · <Icon emoji={fert.emoji} /> {fert.name} · {plans.length} match{plans.length === 1 ? '' : 'es'}
               </span>
             </div>
             {plans.length === 0 ? (

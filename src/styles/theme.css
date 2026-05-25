@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;600;700&display=swap');
+
 /* Stardew-inspired theme: parchment panels on a pixel-farm sky.
    Colors chosen to evoke the in-game UI without ripping art assets. */
 :root {
@@ -47,6 +49,10 @@ body img, .pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
 }
 
 .title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   text-align: center;
   color: #fff;
   text-shadow: 2px 2px 0 #2b1a0a, 4px 4px 0 rgba(0,0,0,.25);
@@ -54,6 +60,7 @@ body img, .pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
   letter-spacing: 0.04em;
   margin: 8px 0 4px;
 }
+.title-icon { width: 1.1em; height: 1.1em; }
 .subtitle {
   text-align: center;
   color: #fff8e7;
@@ -90,6 +97,9 @@ body img, .pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
   margin-bottom: 12px;
 }
 .summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.85rem;
   color: #7a5a30;
   font-style: italic;
@@ -136,6 +146,18 @@ body img, .pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
   border: 2px solid var(--sv-wood-light);
   border-radius: 6px;
   color: var(--sv-ink);
+}
+.field select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%236b3a1a' d='M0 0l5 6 5-6z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+[data-theme="dark"] .field select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%23ffd24a' d='M0 0l5 6 5-6z'/></svg>");
 }
 .field input:focus, .field select:focus {
   outline: 2px solid var(--sv-accent-summer);
@@ -548,7 +570,15 @@ footer a { color: #fff3c4; }
   color: #5a3a1c;
 }
 .patch-bullets li::before {
-  content: "🌱 ";
+  content: "";
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-right: 0.45rem;
+  border: 1px solid #2b1a0a;
+  background: var(--sv-good);
+  box-shadow: 1px 1px 0 rgba(43, 26, 10, 0.45);
+  transform: translateY(-0.08rem);
 }
 
 /* -------- Page navigation -------- */
@@ -560,6 +590,10 @@ footer a { color: #fff3c4; }
   flex-wrap: wrap;
 }
 .nav-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   background: #fffaea;
   color: var(--sv-wood);
   border: 3px solid #2b1a0a;
@@ -592,7 +626,7 @@ footer a { color: #fff3c4; }
   gap: 3px;
 }
 .fert-head { display: flex; align-items: center; gap: 6px; }
-.fert-emoji { font-size: 1.1rem; }
+.fert-emoji { font-size: 1.1rem; width: 1.1em; height: 1.1em; }
 .fert-req { margin-left: auto; color: #7a5a30; font-style: italic; }
 .fert-split { color: #7a5a30; }
 .quality-mix {
@@ -600,6 +634,14 @@ footer a { color: #fff3c4; }
   gap: 8px;
   font-size: 0.78rem;
   flex-wrap: wrap;
+}
+.quality-mix span,
+.fert-head,
+.workshop h2,
+.ws-card h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* -------- Fertilizer Workshop -------- */
@@ -717,4 +759,203 @@ footer a { color: #fff3c4; }
   background: #fffaea;
   border: 2px solid var(--sv-wood-light);
   border-radius: 4px;
+}
+
+/* ============================================================
+   Pixel-vibe display font for titles. Body keeps the system
+   sans for readability at small sizes.
+   ============================================================ */
+.title,
+.panel h2,
+.drawer-section h3,
+.crop-name,
+.ws-card h3,
+.ws-subhead,
+.patch-version,
+.nav-tab,
+.field label,
+.group-label,
+.notes-label {
+  font-family: 'Pixelify Sans', 'Trebuchet MS', system-ui, sans-serif;
+  letter-spacing: 0.02em;
+}
+
+/* ============================================================
+   Dark wood theme — activates when <html data-theme="dark">.
+   Default (no attribute or "light") keeps the original cream
+   parchment styling.
+   ============================================================ */
+:root[data-theme="dark"] {
+  --sv-panel-bg:    #6b4423;
+  --sv-card-bg:     #7a5230;
+  --sv-card-inner:  #8c633d;
+  --sv-text:        #fff3d1;
+  --sv-text-dim:    #f0d9a3;
+  --sv-title-gold:  #ffd24a;
+}
+
+[data-theme="dark"] .panel { background: var(--sv-panel-bg); color: var(--sv-text); }
+[data-theme="dark"] .panel h2 { color: var(--sv-title-gold); }
+[data-theme="dark"] .panel-head { border-bottom-color: rgba(217,185,122,0.35); }
+[data-theme="dark"] .summary { color: var(--sv-text-dim); }
+[data-theme="dark"] .group-label { color: var(--sv-title-gold); }
+
+[data-theme="dark"] .field label { color: var(--sv-title-gold); }
+[data-theme="dark"] .field input,
+[data-theme="dark"] .field select {
+  background: #4a2f15;
+  color: var(--sv-text);
+  border-color: #b8854a;
+}
+
+[data-theme="dark"] .card { background: var(--sv-card-bg); color: var(--sv-text); }
+[data-theme="dark"] .crop-name { color: var(--sv-title-gold); }
+[data-theme="dark"] .source-line { color: var(--sv-text-dim); }
+[data-theme="dark"] .primary-stats {
+  background: var(--sv-card-inner);
+  border-color: rgba(217,185,122,0.3);
+}
+[data-theme="dark"] .primary .label { color: var(--sv-text-dim); }
+[data-theme="dark"] .primary .value { color: var(--sv-text); }
+[data-theme="dark"] .primary .value.profit { color: #7be08b; }
+[data-theme="dark"] .primary .value.profit.neg { color: #ff7a6a; }
+[data-theme="dark"] .secondary-stats span { color: var(--sv-text-dim); }
+[data-theme="dark"] .secondary-stats b { color: var(--sv-text); }
+[data-theme="dark"] .meta-list { color: var(--sv-text); }
+[data-theme="dark"] .meta-list li::before { color: var(--sv-title-gold); }
+
+[data-theme="dark"] .notes {
+  background: var(--sv-card-inner);
+  color: var(--sv-text);
+  border-left-color: var(--sv-title-gold);
+}
+[data-theme="dark"] .notes-label { color: var(--sv-title-gold); }
+[data-theme="dark"] .empty { color: var(--sv-text-dim); }
+
+[data-theme="dark"] .fert-block {
+  background: var(--sv-card-inner);
+  color: var(--sv-text);
+  border-color: rgba(217,185,122,0.3);
+}
+[data-theme="dark"] .fert-req,
+[data-theme="dark"] .fert-split { color: var(--sv-text-dim); }
+
+[data-theme="dark"] .drawer { background: var(--sv-panel-bg); color: var(--sv-text); }
+[data-theme="dark"] .drawer-head { border-bottom-color: rgba(217,185,122,0.35); }
+[data-theme="dark"] .drawer-title .crop-name { color: var(--sv-title-gold); }
+[data-theme="dark"] .drawer-title .source-line { color: var(--sv-text-dim); }
+[data-theme="dark"] .drawer-section h3 { color: var(--sv-title-gold); }
+[data-theme="dark"] .kv-grid span { color: var(--sv-text-dim); }
+[data-theme="dark"] .kv-grid b { color: var(--sv-text); }
+[data-theme="dark"] .kv-grid div { border-bottom-color: rgba(217,185,122,0.25); }
+[data-theme="dark"] .kv-grid b.profit { color: #7be08b; }
+[data-theme="dark"] .kv-grid b.profit.neg { color: #ff7a6a; }
+[data-theme="dark"] .harvest-dates {
+  background: var(--sv-card-inner);
+  color: var(--sv-text);
+  border-color: rgba(217,185,122,0.3);
+}
+[data-theme="dark"] .harvest-dates .kv-label { color: var(--sv-title-gold); }
+[data-theme="dark"] .note-line { color: var(--sv-text); }
+
+[data-theme="dark"] .workshop .subtitle-soft { color: var(--sv-text-dim); }
+[data-theme="dark"] .ws-card { background: var(--sv-card-bg); color: var(--sv-text); }
+[data-theme="dark"] .ws-card h3 { color: var(--sv-title-gold); }
+[data-theme="dark"] .ws-subhead { color: var(--sv-title-gold); }
+[data-theme="dark"] .ws-option {
+  background: var(--sv-card-inner);
+  color: var(--sv-text);
+  border-color: rgba(217,185,122,0.3);
+}
+[data-theme="dark"] .ws-option.is-best {
+  background: #6b4a22;
+  border-color: var(--sv-title-gold);
+}
+[data-theme="dark"] .ws-option-sub { color: var(--sv-text-dim); }
+[data-theme="dark"] .ws-ingredients { color: var(--sv-text); }
+[data-theme="dark"] .ws-ingredients span { color: var(--sv-text-dim); }
+[data-theme="dark"] .ingredient-row { color: var(--sv-text); }
+[data-theme="dark"] .ingredient-row input {
+  background: #2b1a0a;
+  color: var(--sv-text);
+  border-color: #8c5a2a;
+}
+
+[data-theme="dark"] .patch-entry { background: var(--sv-card-bg); color: var(--sv-text); }
+[data-theme="dark"] .patch-entry.is-latest { background: #553620; }
+[data-theme="dark"] .patch-head { border-bottom-color: rgba(217,185,122,0.35); }
+[data-theme="dark"] .patch-version { color: var(--sv-title-gold); }
+[data-theme="dark"] .patch-title { color: var(--sv-text); }
+[data-theme="dark"] .patch-bullets { color: var(--sv-text); }
+
+[data-theme="dark"] .nav-tab { background: var(--sv-card-bg); color: var(--sv-text); }
+[data-theme="dark"] .nav-tab[data-active="true"] {
+  background: var(--sv-accent-summer);
+  color: var(--sv-ink);
+}
+
+/* Dark theme only changes the INACTIVE chip (was 50% opacity = invisible).
+   Active chips keep their upstream yellow/seasonal background. */
+[data-theme="dark"] .chip[data-active="false"] {
+  opacity: 1;
+  background: #5a3a1c;
+  color: var(--sv-text-dim);
+  border-color: #8c5a2a;
+  font-weight: 600;
+}
+[data-theme="dark"] .chip[data-active="true"] {
+  color: #2b1a0a;
+  font-weight: 700;
+}
+[data-theme="dark"] .season-chip[data-season="Fall"][data-active="true"] { color: #fff; }
+
+[data-theme="dark"] .ws-best { color: var(--sv-ink); }
+[data-theme="dark"] .card .rank { color: #2b1a0a; }
+
+/* Calendar legend + empty cells need contrast on the wood panel */
+[data-theme="dark"] .cal-legend { color: var(--sv-text); }
+[data-theme="dark"] .cal-legend .swatch { border-color: #2b1a0a; }
+[data-theme="dark"] .cal-cell {
+  background: #2b1a0a;
+  color: var(--sv-text-dim);
+}
+[data-theme="dark"] .cal-cell .cal-day { color: var(--sv-text-dim); }
+/* Active-state cells already use bright accents — keep them dark-inked */
+[data-theme="dark"] .cal-cell.k-plant         { background: #cfe9bf; color: #2f5a18; }
+[data-theme="dark"] .cal-cell.k-water         { background: #c6e0f0; color: #1f4a6a; }
+[data-theme="dark"] .cal-cell.k-harvest       { background: var(--sv-accent-summer); color: #5a3a05; }
+[data-theme="dark"] .cal-cell.k-regrowHarvest { background: #f3d66b; color: #5a3a05; }
+[data-theme="dark"] .cal-cell.k-plant .cal-day,
+[data-theme="dark"] .cal-cell.k-water .cal-day,
+[data-theme="dark"] .cal-cell.k-harvest .cal-day,
+[data-theme="dark"] .cal-cell.k-regrowHarvest .cal-day { color: #2b1a0a; }
+
+/* ============================================================
+   Theme toggle button (header)
+   ============================================================ */
+.theme-toggle {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 40;             /* stays under the drawer (50/51) */
+  background: var(--sv-accent-summer);
+  border: 2px solid #2b1a0a;
+  border-radius: 999px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #2b1a0a, 0 6px 12px rgba(0,0,0,.25);
+}
+.theme-toggle:hover { transform: translateY(-1px); }
+.theme-toggle .pixel-icon { display: block; }
+
+.pixel-icon {
+  display: inline-block;
+  vertical-align: -0.15em;
+  color: currentColor;
+  flex: 0 0 auto;
 }

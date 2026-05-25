@@ -1,5 +1,6 @@
 import { FERTILIZER_BY_ID } from '../data/fertilizers';
 import { CropPlan, SeedSource } from '../domain/types';
+import { Icon } from './Icon';
 
 const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
 
@@ -55,7 +56,7 @@ export function CropCard({ plan, rank, onSelect }: Props) {
       <div className="rank" title={`Rank #${rank}`}>{rank}</div>
 
       <header className="card-head">
-        <span className="emoji" aria-hidden>{crop.emoji ?? '🌱'}</span>
+        <Icon emoji={crop.emoji ?? '🌱'} className="emoji" />
         <div className="head-text">
           <div className="crop-name">{crop.name}</div>
           <div className="source-line">
@@ -95,7 +96,7 @@ export function CropCard({ plan, rank, onSelect }: Props) {
         return (
           <div className="fert-block">
             <div className="fert-head">
-              <span className="fert-emoji">{fert.emoji}</span>
+              <Icon emoji={fert.emoji} className="fert-emoji" />
               <b>{fert.name}</b>
               <span className="fert-req">requires {plan.fertilizerRequired}</span>
             </div>
@@ -106,10 +107,10 @@ export function CropCard({ plan, rank, onSelect }: Props) {
             )}
             {fert.qualityLevel > 0 && (
               <div className="quality-mix">
-                <span title="Regular">⬜ {pct(mix.regular)}</span>
-                <span title="Silver">🥈 {pct(mix.silver)}</span>
-                <span title="Gold">🥇 {pct(mix.gold)}</span>
-                <span title="Iridium">💠 {pct(mix.iridium)}</span>
+                <span title="Regular"><Icon emoji="⬜" /> {pct(mix.regular)}</span>
+                <span title="Silver"><Icon emoji="🥈" /> {pct(mix.silver)}</span>
+                <span title="Gold"><Icon emoji="🥇" /> {pct(mix.gold)}</span>
+                <span title="Iridium"><Icon emoji="💠" /> {pct(mix.iridium)}</span>
               </div>
             )}
             {fert.speedMod > 0 && (

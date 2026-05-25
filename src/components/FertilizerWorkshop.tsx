@@ -8,6 +8,7 @@ import {
   Fertilizer,
 } from '../data/fertilizers';
 import { FertilizerId } from '../domain/types';
+import { Icon } from './Icon';
 
 const gold = (n: number) => `${Math.round(n).toLocaleString()}g`;
 
@@ -82,7 +83,7 @@ export function FertilizerWorkshop() {
 
   return (
     <section className="panel workshop">
-      <h2>🧪 Fertilizer Workshop</h2>
+      <h2><Icon emoji="🧪" /> Fertilizer Workshop</h2>
       <p className="subtitle-soft">
         Pick a fertilizer and a target quantity. We compare buying from each vendor
         against the gold-value of the crafting ingredients and recommend the cheapest path.
@@ -93,7 +94,7 @@ export function FertilizerWorkshop() {
           <label>Fertilizer</label>
           <select value={fertId} onChange={(e) => setFertId(e.target.value as FertilizerId)}>
             {FERTILIZERS.filter((f) => f.id !== 'none').map((f) => (
-              <option key={f.id} value={f.id}>{f.emoji} {f.name}</option>
+              <option key={f.id} value={f.id}>{f.name}</option>
             ))}
           </select>
         </div>
@@ -110,7 +111,7 @@ export function FertilizerWorkshop() {
 
       <div className="ws-grid">
         <article className="ws-card">
-          <h3>{fert.emoji} {fert.name}</h3>
+          <h3><Icon emoji={fert.emoji} /> {fert.name}</h3>
           <p className="note-line">{fert.summary}</p>
           {fert.unlock && <p className="note-line"><b>Unlock:</b> {fert.unlock}</p>}
           <div className="kv-grid">
