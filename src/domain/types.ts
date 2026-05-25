@@ -38,12 +38,38 @@ export interface Crop {
   emoji?: string;              // small icon glyph fallback
 }
 
+export type FertilizerId =
+  | 'none'
+  | 'basic'          // Basic Fertilizer  (quality level 1)
+  | 'quality'        // Quality Fertilizer (quality level 2)
+  | 'deluxe'         // Deluxe Fertilizer  (quality level 3)
+  | 'speed'          // Speed-Gro         (10% faster growth)
+  | 'deluxe-speed'   // Deluxe Speed-Gro  (25% faster)
+  | 'hyper-speed'    // Hyper Speed-Gro   (33% faster)
+  | 'basic-retain'   // Basic Retaining Soil
+  | 'quality-retain' // Quality Retaining Soil
+  | 'deluxe-retain'  // Deluxe Retaining Soil
+  | 'tree';          // Tree Fertilizer (not used by crop planner profit math)
+
+export type FarmingLevel = 0|1|2|3|4|5|6|7|8|9|10|11|12|13|14;
+
 export interface PlannerInput {
   season: Season;
   day: number;             // 1..28
   money: number;
   quality: Quality;
   enabledSources: SeedSource[];
+  farmingLevel: FarmingLevel;
+  fertilizerId: FertilizerId;
+  /** Limited fertilizer mode. undefined = assume enough fertilizer for every seed. */
+  fertilizerAmount?: number;
+}
+
+export interface QualityMix {
+  regular: number;
+  silver: number;
+  gold: number;
+  iridium: number;
 }
 
 export interface CropPlan {
@@ -62,4 +88,14 @@ export interface CropPlan {
   profitPerDay: number;
   daysUsed: number;
   warnings: string[];
+  // Fertilizer-aware additions:
+  fertilizerId: FertilizerId;
+  fertilizerRequired: number;        // how many fertilizer items are required (typically = fertilized seeds)
+  fertilizedSeeds: number;           // seeds planted on fertilized soil
+  unfertilizedSeeds: number;         // seeds planted on bare soil (when amount is limited)
+  expectedUnitValueFertilized: number;   // expected gold per produce item under selected fertilizer
+  expectedUnitValueUnfertilized: number; // expected gold per produce item with no fertilizer
+  qualityMixFertilized: QualityMix;
+  qualityMixUnfertilized: QualityMix;
+  effectiveGrowthDays: number;       // after Speed-Gro
 }

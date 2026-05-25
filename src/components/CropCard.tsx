@@ -1,4 +1,7 @@
+import { FERTILIZER_BY_ID } from '../data/fertilizers';
 import { CropPlan, SeedSource } from '../domain/types';
+
+const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
 
 interface Props {
   plan: CropPlan;
@@ -85,6 +88,38 @@ export function CropCard({ plan, rank, onSelect }: Props) {
           <div><span>Last harvest</span><b>{plan.lastHarvestDate}</b></div>
         )}
       </div>
+
+      {plan.fertilizerId !== 'none' && (() => {
+        const fert = FERTILIZER_BY_ID[plan.fertilizerId];
+        const mix = plan.qualityMixFertilized;
+        return (
+          <div className="fert-block">
+            <div className="fert-head">
+              <span className="fert-emoji">{fert.emoji}</span>
+              <b>{fert.name}</b>
+              <span className="fert-req">requires {plan.fertilizerRequired}</span>
+            </div>
+            {plan.unfertilizedSeeds > 0 && (
+              <div className="fert-split">
+                {plan.fertilizedSeeds} fertilized · {plan.unfertilizedSeeds} on bare soil
+              </div>
+            )}
+            {fert.qualityLevel > 0 && (
+              <div className="quality-mix">
+                <span title="Regular">⬜ {pct(mix.regular)}</span>
+                <span title="Silver">🥈 {pct(mix.silver)}</span>
+                <span title="Gold">🥇 {pct(mix.gold)}</span>
+                <span title="Iridium">💠 {pct(mix.iridium)}</span>
+              </div>
+            )}
+            {fert.speedMod > 0 && (
+              <div className="fert-split">
+                Growth {crop.growthDays}→{plan.effectiveGrowthDays} days (first harvest only)
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <ul className="meta-list">
         {metadataLines(crop).map((line) => (

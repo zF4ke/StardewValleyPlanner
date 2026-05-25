@@ -11,6 +11,7 @@ import {
 import { Crop, PlannerInput } from '../domain/types';
 import { CROPS } from '../data/crops';
 import { DEFAULT_ENABLED } from '../components/Filters';
+import { FERTILIZER_BY_ID, qualityMix } from '../data/fertilizers';
 
 const PARSNIP: Crop = {
   name: 'Test Parsnip', seasons: ['Spring'], growthDays: 4, seedCost: 20,
@@ -72,6 +73,7 @@ describe('date math', () => {
 describe('money math', () => {
   const baseInput: PlannerInput = {
     season: 'Spring', day: 1, money: 100, quality: 'Regular', enabledSources: ['Pierre'],
+    farmingLevel: 0, fertilizerId: 'none',
   };
 
   it('insufficient money produces null (zero purchasable seeds)', () => {
@@ -85,7 +87,11 @@ describe('money math', () => {
     expect(plan.seedSpend).toBe(100);
     expect(plan.moneyAfterBuying).toBe(0);
     expect(plan.totalProduce).toBe(5); // 5 seeds × 1 × 1 harvest
-    expect(plan.revenue).toBe(5 * 35);
+    // EV revenue: at farming level 0, no fertilizer, wiki formula gives
+    // 97.02% Regular, 1.98% Silver, 1% Gold.
+    const mix = qualityMix(0, 0);
+    const expectedMult = mix.regular + mix.silver * 1.25 + mix.gold * 1.5;
+    expect(plan.revenue).toBeCloseTo(5 * 35 * expectedMult, 5);
     expect(plan.finalMoney).toBe(plan.moneyAfterBuying + plan.revenue);
     expect(plan.netProfit).toBe(plan.finalMoney - 100);
   });
@@ -136,6 +142,7 @@ describe('ranking', () => {
   it('default ranking is net profit descending', () => {
     const input: PlannerInput = {
       season: 'Spring', day: 1, money: 5000, quality: 'Regular', enabledSources: DEFAULT_ENABLED,
+      farmingLevel: 0, fertilizerId: 'none',
     };
     const plans = rankCrops(CROPS, input);
     expect(plans.length).toBeGreaterThan(1);
@@ -148,6 +155,7 @@ describe('ranking', () => {
 describe('filters', () => {
   const input: PlannerInput = {
     season: 'Spring', day: 1, money: 100000, quality: 'Regular', enabledSources: DEFAULT_ENABLED,
+    farmingLevel: 0, fertilizerId: 'none',
   };
 
   it('default normal-shop filter excludes Strawberry/Rhubarb/Starfruit/Sweet Gem Berry', () => {
@@ -168,5 +176,121 @@ describe('filters', () => {
   it('Winter with default filter yields no plantable crops', () => {
     const winter = rankCrops(CROPS, { ...input, season: 'Winter' });
     expect(winter.length).toBe(0);
+  });
+});
+
+describe('fertilizer & quality EV', () => {
+  const base: PlannerInput = {
+    season: 'Spring', day: 1, money: 1000, quality: 'Regular', enabledSources: ['Pierre'],
+    farmingLevel: 0, fertilizerId: 'none',
+  };
+
+  it('quality mix probabilities sum to 1', () => {
+    for (const lvl of [0, 1, 2, 3] as const) {
+      for (const f of [0, 5, 10]) {
+        const m = qualityMix(f, lvl);
+        const sum = m.regular + m.silver + m.gold + m.iridium;
+        expect(sum).toBeGreaterThan(0.999);
+        expect(sum).toBeLessThan(1.001);
+      }
+    }
+  });
+
+  it('Deluxe Fertilizer can give iridium and never regular', () => {
+    const m = qualityMix(10, 3);
+    expect(m.iridium).toBeGreaterThan(0);
+    expect(m.regular).toBe(0);
+  });
+
+  it('quality formula matches wiki examples after rounding to whole percentages', () => {
+    const bare0 = qualityMix(0, 0);
+    expect(Math.round(bare0.regular * 100)).toBe(97);
+    expect(Math.round(bare0.silver * 100)).toBe(2);
+    expect(Math.round(bare0.gold * 100)).toBe(1);
+
+    const quality10 = qualityMix(10, 2);
+    expect(Math.round(quality10.regular * 100)).toBe(10);
+    expect(Math.round(quality10.silver * 100)).toBe(29);
+    expect(Math.round(quality10.gold * 100)).toBe(61);
+
+    const deluxe0 = qualityMix(0, 3);
+    expect(Math.round(deluxe0.regular * 100)).toBe(0);
+    expect(Math.round(deluxe0.silver * 100)).toBe(84);
+    expect(Math.round(deluxe0.gold * 100)).toBe(10);
+    expect(Math.round(deluxe0.iridium * 100)).toBe(6);
+  });
+
+  it('fertilizer prices and recipes match the wiki table', () => {
+    expect(FERTILIZER_BY_ID.quality.recipe).toEqual({
+      ingredients: [{ id: 'Sap', qty: 4 }, { id: 'Fish', qty: 1 }],
+      outputs: 2,
+    });
+    expect(FERTILIZER_BY_ID['deluxe-speed'].recipe).toEqual({
+      ingredients: [{ id: 'OakResin', qty: 1 }, { id: 'BoneFragment', qty: 5 }],
+      outputs: 5,
+    });
+    expect(FERTILIZER_BY_ID['hyper-speed'].recipe).toEqual({
+      ingredients: [{ id: 'RadioactiveOre', qty: 1 }, { id: 'BoneFragment', qty: 3 }, { id: 'SolarEssence', qty: 1 }],
+      outputs: 1,
+    });
+    expect(FERTILIZER_BY_ID.deluxe.sellPrice).toBe(70);
+    expect(FERTILIZER_BY_ID['deluxe-retain'].sellPrice).toBe(30);
+    expect(FERTILIZER_BY_ID['basic-retain'].recipe?.outputs).toBe(1);
+  });
+
+  it('Speed-Gro shortens first harvest only, not regrowth interval', () => {
+    // Blueberry: growth 13, regrow 4.
+    const blueberry = CROPS.find((c) => c.name === 'Blueberry')!;
+    const noSpeed = planCrop(blueberry, { ...base, season: 'Summer', money: 10000 })!;
+    const speed = planCrop(blueberry, { ...base, season: 'Summer', money: 10000, fertilizerId: 'deluxe-speed' })!;
+    // deluxe-speed = 25% off 13 = 3 days off → first harvest at day 10 instead of 13
+    expect(speed.effectiveGrowthDays).toBe(10);
+    expect(noSpeed.harvestDays[0]).toBe(13);
+    expect(speed.harvestDays[0]).toBe(10);
+    // Regrowth interval unchanged: subsequent harvests still 4 days apart.
+    for (let i = 1; i < speed.harvestDays.length; i++) {
+      expect(speed.harvestDays[i] - speed.harvestDays[i - 1]).toBe(4);
+    }
+  });
+
+  it('limited fertilizer splits seeds into fertilized + bare', () => {
+    const plan = planCrop(
+      CROPS.find((c) => c.name === 'Parsnip')!,
+      { ...base, money: 1000, fertilizerId: 'quality', fertilizerAmount: 10 }
+    )!;
+    // 1000/20 = 50 seeds, only 10 fertilized.
+    expect(plan.seedsBought).toBe(50);
+    expect(plan.fertilizedSeeds).toBe(10);
+    expect(plan.unfertilizedSeeds).toBe(40);
+    expect(plan.fertilizerRequired).toBe(50);
+  });
+
+  it('unlimited fertilizer fertilizes every seed', () => {
+    const plan = planCrop(
+      CROPS.find((c) => c.name === 'Parsnip')!,
+      { ...base, money: 1000, fertilizerId: 'basic' }
+    )!;
+    expect(plan.fertilizedSeeds).toBe(plan.seedsBought);
+    expect(plan.unfertilizedSeeds).toBe(0);
+  });
+
+  it('quality fertilizer raises expected unit value at higher farming levels', () => {
+    const parsnip = CROPS.find((c) => c.name === 'Parsnip')!;
+    const lo = planCrop(parsnip, { ...base, farmingLevel: 0, fertilizerId: 'quality' })!;
+    const hi = planCrop(parsnip, { ...base, farmingLevel: 10, fertilizerId: 'quality' })!;
+    expect(hi.expectedUnitValueFertilized).toBeGreaterThan(lo.expectedUnitValueFertilized);
+  });
+});
+
+describe('patch notes', () => {
+  it('has a current version and every release has at least one bullet', async () => {
+    const { PATCH_NOTES, CURRENT_VERSION } = await import('../data/patchNotes');
+    expect(CURRENT_VERSION).toMatch(/^v\d+\.\d+\.\d+/);
+    expect(PATCH_NOTES.length).toBeGreaterThan(0);
+    expect(PATCH_NOTES[0].version).toBe(CURRENT_VERSION);
+    for (const p of PATCH_NOTES) {
+      expect(p.bullets.length).toBeGreaterThan(0);
+      expect(p.title.length).toBeGreaterThan(0);
+    }
   });
 });

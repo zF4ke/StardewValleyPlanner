@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { calendarEvents } from '../domain/planner';
+import { FERTILIZER_BY_ID } from '../data/fertilizers';
 import { CropPlan, DAYS_PER_SEASON, Season } from '../domain/types';
 
 interface Props {
@@ -28,7 +29,8 @@ const KIND_TITLE: Record<CellKind, string> = {
 };
 
 export function CropCalendarDrawer({ plan, season, day, onClose }: Props) {
-  const events = calendarEvents(plan.crop, season, day);
+  const fert = FERTILIZER_BY_ID[plan.fertilizerId];
+  const events = calendarEvents(plan.crop, season, day, fert.speedMod);
   // Reduce to one kind per day-of-season within the visible 28-day window.
   const byDay = new Map<number, CellKind>();
   const priority: CellKind[] = ['harvest', 'regrowHarvest', 'plant', 'water'];
