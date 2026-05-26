@@ -6,9 +6,20 @@ import { DEFAULT_ENABLED, Filters } from './components/Filters';
 import { FertilizerWorkshop } from './components/FertilizerWorkshop';
 import { Icon } from './components/Icon';
 import { PatchNotes } from './components/PatchNotes';
+import { TrackedCropsDrawer } from './components/TrackedCropsDrawer';
 import { CROPS } from './data/crops';
 import { FERTILIZER_BY_ID } from './data/fertilizers';
 import { CURRENT_VERSION } from './data/patchNotes';
+import { loadPlannerInputs, savePlannerInputs } from './data/plannerInputs';
+import {
+  CurrentDay,
+  TrackedCrop,
+  createTrackedCrop,
+  loadToday,
+  loadTrackedCrops,
+  saveToday,
+  saveTrackedCrops,
+} from './data/trackedCrops';
 import { rankCrops } from './domain/planner';
 import { FarmingLevel, FertilizerId, Quality, Season, SeedSource } from './domain/types';
 
@@ -31,15 +42,45 @@ export default function App() {
     try { localStorage.setItem('theme', theme); } catch { /* private mode */ }
   }, [theme]);
 
-  const [season, setSeason] = useState<Season>('Spring');
-  const [day, setDay] = useState(1);
-  const [money, setMoney] = useState(500);
-  const [quality, setQuality] = useState<Quality>('Regular');
-  const [farmingLevel, setFarmingLevel] = useState<FarmingLevel>(0);
-  const [fertilizerId, setFertilizerId] = useState<FertilizerId>('none');
-  const [fertilizerAmount, setFertilizerAmount] = useState<number | undefined>(undefined);
-  const [enabled, setEnabled] = useState<SeedSource[]>(DEFAULT_ENABLED);
+  const initialInputs = loadPlannerInputs();
+  const [season, setSeason] = useState<Season>(initialInputs.season);
+  const [day, setDay] = useState(initialInputs.day);
+  const [money, setMoney] = useState(initialInputs.money);
+  const [quality, setQuality] = useState<Quality>(initialInputs.quality);
+  const [farmingLevel, setFarmingLevel] = useState<FarmingLevel>(initialInputs.farmingLevel);
+  const [fertilizerId, setFertilizerId] = useState<FertilizerId>(initialInputs.fertilizerId);
+  const [fertilizerAmount, setFertilizerAmount] = useState<number | undefined>(initialInputs.fertilizerAmount);
+  const [enabled, setEnabled] = useState<SeedSource[]>(
+    initialInputs.enabledSources.length > 0 ? initialInputs.enabledSources : DEFAULT_ENABLED
+  );
+
+  useEffect(() => {
+    savePlannerInputs({
+      season, day, money, quality, farmingLevel,
+      fertilizerId, fertilizerAmount, enabledSources: enabled,
+    });
+  }, [season, day, money, quality, farmingLevel, fertilizerId, fertilizerAmount, enabled]);
   const [selectedCrop, setSelectedCrop] = useState<string | null>(null);
+  const [tracked, setTracked] = useState<TrackedCrop[]>(() => loadTrackedCrops());
+  const [today, setToday] = useState<CurrentDay>(() => loadToday());
+  const [farmOpen, setFarmOpen] = useState(false);
+
+  useEffect(() => { saveTrackedCrops(tracked); }, [tracked]);
+  useEffect(() => { saveToday(today); }, [today]);
+
+  const trackPlan = (cropName: string) => {
+    const plan = plans.find((p) => p.crop.name === cropName);
+    if (!plan) return;
+    setTracked((cur) => [
+      ...cur,
+      createTrackedCrop({
+        cropName,
+        season, day, farmingLevel, fertilizerId, fertilizerAmount,
+        seedsBought: plan.seedsBought,
+      }),
+    ]);
+    setFarmOpen(true);
+  };
 
   const plans = useMemo(
     () => rankCrops(CROPS, {
@@ -68,6 +109,25 @@ export default function App() {
         title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         aria-label="Toggle theme"
       ><Icon emoji={theme === 'dark' ? '☀️' : '🌙'} /></button>
+
+      <button
+        className="farm-toggle"
+        onClick={() => setFarmOpen(true)}
+        title="My farm — tracked crops"
+        aria-label="Open tracked crops"
+      >
+        <Icon emoji="📌" />
+        {tracked.length > 0 && <span className="farm-badge">{tracked.length}</span>}
+      </button>
+
+      <TrackedCropsDrawer
+        open={farmOpen}
+        onClose={() => setFarmOpen(false)}
+        tracked={tracked}
+        today={today}
+        onTodayChange={setToday}
+        onRemove={(id) => setTracked((cur) => cur.filter((t) => t.id !== id))}
+      />
 
       <nav className="page-nav">
         <button
@@ -149,6 +209,8 @@ export default function App() {
                 season={season}
                 day={day}
                 onClose={() => setSelectedCrop(null)}
+                onTrack={() => trackPlan(plan.crop.name)}
+                tracked={tracked.some((t) => t.cropName === plan.crop.name)}
               />
             ) : null;
           })()}

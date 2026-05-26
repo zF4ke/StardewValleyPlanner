@@ -64,6 +64,8 @@ const EMOJI_TO_ICON: Record<string, string> = {
   '📜': 'game-icons:scroll-quill',
   '☀️': 'pixelarticons:sun-alt',
   '🌙': 'pixelarticons:moon',
+  '📌': 'game-icons:pin',
+  '📋': 'game-icons:scroll-unfurled',
 
   // ---- Quality ----
   '⬜': 'pixelarticons:square-rounded',

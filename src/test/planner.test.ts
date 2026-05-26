@@ -294,3 +294,62 @@ describe('patch notes', () => {
     }
   });
 });
+
+describe('tracked crops', () => {
+  it('validateTrackedCrop defaults missing fields and clamps season/day/farming level', async () => {
+    const { validateTrackedCrop } = await import('../data/trackedCrops');
+    const out = validateTrackedCrop({
+      id: 'x', cropName: 'Parsnip',
+      season: 'Bogus', day: 99,
+      farmingLevel: 50, fertilizerId: 'nonsense',
+      fertilizerAmount: 'huh', seedsBought: -5,
+    });
+    expect(out).not.toBeNull();
+    expect(out!.season).toBe('Spring');
+    expect(out!.day).toBe(28);
+    expect(out!.farmingLevel).toBe(14);
+    expect(out!.fertilizerId).toBe('none');
+    expect(out!.fertilizerAmount).toBeUndefined();
+    expect(out!.seedsBought).toBe(0);
+  });
+
+  it('validateTrackedCrop rejects entries missing id or cropName', async () => {
+    const { validateTrackedCrop } = await import('../data/trackedCrops');
+    expect(validateTrackedCrop(null)).toBeNull();
+    expect(validateTrackedCrop({ id: 'x' })).toBeNull();
+    expect(validateTrackedCrop({ cropName: 'Parsnip' })).toBeNull();
+  });
+
+  it('round-trips through JSON without losing inputs', async () => {
+    const { createTrackedCrop, validateTrackedCrop } = await import('../data/trackedCrops');
+    const t = createTrackedCrop({
+      cropName: 'Blueberry', season: 'Summer', day: 1,
+      farmingLevel: 8, fertilizerId: 'quality', fertilizerAmount: 20,
+      seedsBought: 50,
+    });
+    const r = validateTrackedCrop(JSON.parse(JSON.stringify(t)))!;
+    expect(r.cropName).toBe('Blueberry');
+    expect(r.season).toBe('Summer');
+    expect(r.day).toBe(1);
+    expect(r.farmingLevel).toBe(8);
+    expect(r.fertilizerId).toBe('quality');
+    expect(r.fertilizerAmount).toBe(20);
+    expect(r.seedsBought).toBe(50);
+  });
+
+  it('advanceDay handles season and year wrap', async () => {
+    const { advanceDay } = await import('../data/trackedCrops');
+    expect(advanceDay({ season: 'Spring', day: 28, year: 1 }, 1))
+      .toEqual({ season: 'Summer', day: 1, year: 1 });
+    expect(advanceDay({ season: 'Winter', day: 28, year: 1 }, 1))
+      .toEqual({ season: 'Spring', day: 1, year: 2 });
+    expect(advanceDay({ season: 'Summer', day: 1, year: 1 }, -1))
+      .toEqual({ season: 'Spring', day: 28, year: 1 });
+  });
+
+  it('validateToday clamps day and defaults bad season', async () => {
+    const { validateToday } = await import('../data/trackedCrops');
+    expect(validateToday({ season: 'Bogus', day: 99, year: -1 }))
+      .toEqual({ season: 'Spring', day: 28, year: 1 });
+  });
+});

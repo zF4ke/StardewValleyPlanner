@@ -29,6 +29,8 @@ The **crop planner** ranks crops by profit for the day, gold, and shops you've g
 
 The **fertilizer workshop** compares buying vs. crafting and picks the cheaper one.
 
+The **My Farm** drawer tracks crop plans you planted, remembers the current game day, and shows what is ready next.
+
 Click any crop for a Stardew-style 28-day calendar.
 
 ## 🚀 Quickstart
@@ -76,20 +78,26 @@ Pick a fertilizer and a quantity. The workshop compares:
 
 It highlights the cheapest path, lists the ingredient totals, and shows leftover overflow when a recipe outputs in batches. Non-gold trades (e.g. Cinder Shards) are listed separately, never compared on price.
 
+## 📌 My Farm
+
+Track a crop plan from its calendar view and it lands in **My Farm**. The drawer keeps a local list of planted crops, lets you move the current day forward or backward, and marks upcoming harvests on each crop's mini calendar.
+
+Planner inputs and tracked crops are saved in this browser with `localStorage`, so your setup is still there after a refresh. There is no account, sync, or backend.
+
 ## 🗂️ Project layout
 
 ```
 src/
-  data/         crops, fertilizers, patch notes
+  data/         crops, fertilizers, patch notes, saved planner/farm state
   domain/       planner math + types
-  components/   Controls, CropCard, CropCalendarDrawer,
-                FertilizerWorkshop, PatchNotes, Filters
+  components/   Controls, CropCard, CropCalendarDrawer, CropCalendarView,
+                TrackedCropsDrawer, FertilizerWorkshop, PatchNotes, Filters
   styles/       parchment + pixel theme
   test/         vitest specs
 ```
 
 Everything is plain TypeScript + React. No state library, no routing library —
-two `useState` calls power the whole page nav.
+just local component state plus browser storage.
 
 ## 🌱 Data
 

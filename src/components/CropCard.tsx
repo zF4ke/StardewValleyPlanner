@@ -140,6 +140,7 @@ export function CropCard({ plan, rank, onSelect }: Props) {
           <span>There is only time for the first harvest before this crop stops being valid.</span>
         </div>
       )}
+
     </article>
   );
 }

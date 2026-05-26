@@ -8,6 +8,15 @@ export interface PatchNote {
 /** Newest first. The first entry is treated as the current app version. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: 'v0.6.0',
+    title: 'My Farm',
+    bullets: [
+      'Track specific crop plans on a personal farm panel.',
+      'Set a current day and watch upcoming harvests countdown.',
+      'Per-crop mini calendar shows planted day, harvests, and today.',
+    ],
+  },
+  {
     version: 'v0.5.0',
     title: 'Visual Polish',
     bullets: [

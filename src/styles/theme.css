@@ -992,3 +992,374 @@ footer a { color: #fff3c4; }
   height: 1em;
   vertical-align: 0;
 }
+
+/* -------- Saved plans -------- */
+.sp-save-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.sp-save-row input {
+  flex: 1 1 240px;
+  font: inherit;
+  padding: 7px 10px;
+  background: #fffaea;
+  border: 2px solid var(--sv-wood-light);
+  border-radius: 6px;
+  color: var(--sv-ink);
+}
+.sp-btn {
+  background: #fffaea;
+  border: 2px solid #2b1a0a;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 0 #2b1a0a;
+  color: var(--sv-ink);
+}
+.sp-btn:hover { transform: translateY(-1px); }
+.sp-btn-save { background: var(--sv-accent-summer); }
+.sp-btn-danger { background: #f1c5b8; }
+
+.sp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sp-item {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  background: #f6e9c1;
+  border: 1px dashed var(--sv-parchment-edge);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.sp-info { min-width: 0; flex: 1; }
+.sp-name { font-weight: 700; color: var(--sv-wood); }
+.sp-meta { font-size: 0.78rem; color: #7a5a30; }
+.sp-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+@media (max-width: 540px) {
+  .sp-item { flex-direction: column; align-items: stretch; }
+  .sp-actions { justify-content: flex-end; }
+}
+
+[data-theme="dark"] .sp-save-row input {
+  background: #4a2f15; color: var(--sv-text); border-color: #b8854a;
+}
+[data-theme="dark"] .sp-btn {
+  background: #5a3a1c; color: var(--sv-text); border-color: #b8854a;
+}
+[data-theme="dark"] .sp-btn-save { background: var(--sv-accent-summer); color: #2b1a0a; }
+[data-theme="dark"] .sp-btn-danger { background: #9c4a3a; color: var(--sv-text); }
+[data-theme="dark"] .sp-item {
+  background: var(--sv-card-inner);
+  border-color: rgba(217,185,122,0.3);
+}
+[data-theme="dark"] .sp-name { color: var(--sv-title-gold); }
+[data-theme="dark"] .sp-meta { color: var(--sv-text-dim); }
+
+/* -------- My Farm: top-left pin button -------- */
+.farm-toggle {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 40;
+  background: var(--sv-accent-summer);
+  border: 2px solid #2b1a0a;
+  border-radius: 999px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #2b1a0a, 0 6px 12px rgba(0,0,0,.25);
+}
+.farm-toggle:hover { transform: translateY(-1px); }
+.farm-badge {
+  position: absolute;
+  top: -4px; right: -4px;
+  min-width: 18px; height: 18px;
+  background: var(--sv-bad);
+  color: #fff8e7;
+  border: 2px solid #2b1a0a;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  padding: 0 4px;
+}
+
+/* -------- Left-side drawer variant -------- */
+.drawer-left {
+  right: auto;
+  left: 0;
+  border-left: none;
+  border-right: 6px solid #2b1a0a;
+  box-shadow: 8px 0 0 var(--sv-wood), 10px 0 24px rgba(0,0,0,.4);
+  animation: slide-in-left .18s ease;
+}
+@keyframes slide-in-left { from { transform: translateX(-20px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* -------- Today card (drawer banner) -------- */
+.today-card {
+  background: #f6e9c1;
+  border: 2px solid var(--sv-wood);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.today-card-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--sv-wood);
+  font-weight: 700;
+}
+.today-card-date {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--sv-wood);
+  line-height: 1;
+  font-family: 'Pixelify Sans', 'Trebuchet MS', system-ui, sans-serif;
+}
+.today-card-buttons {
+  display: flex;
+  gap: 8px;
+}
+.today-edit-details {
+  margin-top: 4px;
+  width: 100%;
+  font-size: 0.82rem;
+}
+.today-edit-details summary {
+  cursor: pointer;
+  color: #7a5a30;
+  text-align: center;
+  list-style: none;
+  padding: 4px 0;
+}
+.today-edit-details summary::-webkit-details-marker { display: none; }
+.today-edit-details summary::before { content: '⚙ '; }
+.today-edit-row {
+  display: grid;
+  grid-template-columns: 1fr 80px 80px;
+  gap: 8px;
+  margin-top: 6px;
+}
+.today-edit-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #7a5a30;
+}
+.today-edit-row select,
+.today-edit-row input {
+  font: inherit;
+  padding: 5px 8px;
+  background: #fffaea;
+  border: 2px solid var(--sv-wood-light);
+  border-radius: 4px;
+  color: var(--sv-ink);
+  width: 100%;
+}
+
+/* -------- Tracked list -------- */
+.tracked-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tracked-item {
+  background: #f6e9c1;
+  border: 1px dashed var(--sv-parchment-edge);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tracked-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tracked-icon { font-size: 1.4rem; }
+.tracked-name {
+  flex: 1;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--sv-wood);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tracked-remove {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 2px solid var(--sv-wood-light);
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--sv-wood);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0;
+}
+.tracked-remove:hover { background: var(--sv-bad); color: #fff8e7; border-color: var(--sv-bad); }
+.tracked-sub {
+  font-size: 0.78rem;
+  color: #7a5a30;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tracked-status {
+  font-size: 0.88rem;
+  color: var(--sv-ink);
+  background: rgba(255,255,255,0.5);
+  border-left: 3px solid var(--sv-wood-light);
+  padding: 6px 10px;
+  border-radius: 0 4px 4px 0;
+  font-weight: 600;
+}
+.tracked-status.tone-today { background: var(--sv-accent-summer); border-color: var(--sv-wood); }
+.tracked-status.tone-soon  { background: #ffe8a8; border-color: var(--sv-wood-light); }
+.tracked-status.tone-done  { opacity: 0.7; }
+
+/* Per-crop block in the My Farm drawer: same calendar/summary as the right
+   drawer, plus a header strip on top. */
+.tracked-block {
+  background: #f6e9c1;
+  border: 1px dashed var(--sv-parchment-edge);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+.tracked-block .drawer-section {
+  margin-top: 10px;
+}
+.tracked-block .drawer-section h3 {
+  font-size: 0.85rem;
+}
+
+/* "Today" outline on the right-drawer-style calendar grid */
+.cal-cell.is-today {
+  outline: 3px solid var(--sv-bad);
+  outline-offset: -3px;
+  z-index: 1;
+}
+.swatch.is-today-swatch {
+  background: transparent;
+  border: 2px solid var(--sv-bad);
+}
+
+[data-theme="dark"] .tracked-block {
+  background: var(--sv-card-inner);
+  border-color: rgba(217,185,122,0.3);
+}
+
+/* -------- Mini calendar -------- */
+.mini-cal {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  background: #2b1a0a;
+  padding: 2px;
+  border: 1px solid #2b1a0a;
+}
+.mini-cell {
+  background: #fffaea;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
+  font-size: 0.65rem;
+  color: #7a5a30;
+}
+.mini-cell.is-past    { background: #e6d8b0; color: #a08960; }
+.mini-cell.is-plant   { background: #cfe9bf; color: #2f5a18; font-weight: 700; }
+.mini-cell.is-harvest { background: var(--sv-accent-summer); color: #5a3a05; font-weight: 700; }
+.mini-cell.is-today   { outline: 2px solid var(--sv-bad); outline-offset: -2px; font-weight: 700; }
+
+/* -------- Track button on CropCard -------- */
+.track-btn {
+  align-self: flex-start;
+  margin-top: 4px;
+  background: var(--sv-accent-summer);
+  border: 2px solid #2b1a0a;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  box-shadow: 0 2px 0 #2b1a0a;
+  color: var(--sv-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.track-btn:hover { transform: translateY(-1px); }
+.track-btn.is-tracked { background: var(--sv-good); color: #fff8e7; }
+
+/* -------- Dark theme overrides -------- */
+[data-theme="dark"] .tracked-item {
+  background: var(--sv-card-inner);
+  border-color: rgba(217,185,122,0.3);
+}
+[data-theme="dark"] .tracked-meta b { color: var(--sv-title-gold); }
+[data-theme="dark"] .tracked-meta span { color: var(--sv-text-dim); }
+[data-theme="dark"] .tracked-status {
+  background: rgba(0,0,0,0.25);
+  color: var(--sv-text);
+  border-left-color: var(--sv-wood-light);
+}
+[data-theme="dark"] .tracked-status.tone-today { background: var(--sv-accent-summer); color: var(--sv-ink); border-left-color: var(--sv-wood); }
+[data-theme="dark"] .tracked-status.tone-soon  { background: #8c633d; color: var(--sv-text); }
+[data-theme="dark"] .today-card {
+  background: var(--sv-card-inner);
+  border-color: var(--sv-title-gold);
+}
+[data-theme="dark"] .today-card-label { color: var(--sv-title-gold); }
+[data-theme="dark"] .today-card-date  { color: var(--sv-title-gold); }
+[data-theme="dark"] .today-edit-details summary { color: var(--sv-text-dim); }
+[data-theme="dark"] .today-edit-row label { color: var(--sv-text-dim); }
+[data-theme="dark"] .today-edit-row select,
+[data-theme="dark"] .today-edit-row input {
+  background: #4a2f15; color: var(--sv-text); border-color: #b8854a;
+}
+[data-theme="dark"] .tracked-name { color: var(--sv-title-gold); }
+[data-theme="dark"] .tracked-sub  { color: var(--sv-text-dim); }
+[data-theme="dark"] .tracked-remove {
+  border-color: #b8854a; color: var(--sv-text);
+}
+[data-theme="dark"] .mini-cell { background: #5a3a22; color: var(--sv-text-dim); }
+[data-theme="dark"] .mini-cell.is-past    { background: #3d2716; color: #8c6f3d; }
+[data-theme="dark"] .mini-cell.is-plant   { background: #cfe9bf; color: #2f5a18; font-weight: 700; }
+[data-theme="dark"] .mini-cell.is-harvest { background: var(--sv-accent-summer); color: #5a3a05; font-weight: 700; }
+[data-theme="dark"] .mini-cell.is-today   { outline: 2px solid var(--sv-bad); outline-offset: -2px; font-weight: 700; }
+[data-theme="dark"] .track-btn.is-tracked { background: var(--sv-good); color: #fff8e7; }
