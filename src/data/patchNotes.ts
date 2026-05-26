@@ -11,9 +11,8 @@ export const PATCH_NOTES: PatchNote[] = [
     version: 'v0.5.0',
     title: 'Visual Polish',
     bullets: [
-      'Added a light/dark theme toggle.',
-      'Replaced platform emoji with consistent SVG icons.',
-      'Added icons to seed source filters and improved calendar icon contrast.',
+      'Added light and dark themes.',
+      'Gave the app a more consistent pixel-art icon style across crops, tools, and pages.',
     ],
   },
   {
