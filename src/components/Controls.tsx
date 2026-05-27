@@ -151,15 +151,10 @@ export function Controls({
       {isProcessing && (
         <div className="row" style={{ marginTop: 8 }}>
           <div className="field" style={{ minWidth: 140 }}>
-            <label>Max years (1–20)</label>
-            <input type="number" min={1} max={20} step={1}
+            <label>Max years</label>
+            <input type="number" min={1} step={1}
               value={maxYears}
-              onChange={(e) => onChange({ maxYears: clamp(parseInt(e.target.value) || 5, 1, 20) })} />
-          </div>
-          <div className="field" style={{ minWidth: 0, alignSelf: 'center', paddingBottom: 2 }}>
-            <span style={{ fontSize: '0.8rem', color: '#7a5a30', fontStyle: 'italic' }}>
-              Plans finishing later fall back to raw sales.
-            </span>
+              onChange={(e) => onChange({ maxYears: Math.max(1, parseInt(e.target.value) || 5) })} />
           </div>
         </div>
       )}

@@ -394,7 +394,7 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
         const inputCount = Math.max(1, crop.kegInputCount ?? 1);
         const kegMinutes = KEG_MINUTES[product];
         const caskMinutes = isCaskable(product) ? caskMinutesForMode(product, effectiveMode) : 0;
-        const maxPlanDays = Math.max(1, Math.min(20, Math.floor(input.maxYears ?? 5))) * DAYS_PER_SEASON * 4;
+        const maxPlanDays = Math.max(1, Math.floor(input.maxYears ?? 5)) * DAYS_PER_SEASON * 4;
         const scheduled = scheduleProcessing(
           seedsBought * crop.producePerHarvest,
           inputCount,
@@ -493,7 +493,7 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
     minimumCasksRequired,
     busiestKegDayCount,
     busiestKegDayDate,
-    maxPlanDays: Math.max(1, Math.min(20, Math.floor(input.maxYears ?? 5))) * DAYS_PER_SEASON * 4,
+    maxPlanDays: Math.max(1, Math.floor(input.maxYears ?? 5)) * DAYS_PER_SEASON * 4,
   };
 }
 

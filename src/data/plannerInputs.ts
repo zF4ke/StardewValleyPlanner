@@ -92,7 +92,7 @@ export function loadPlannerInputs(): PlannerInputs {
     const caskCount = parseOptCount(r.caskCount);
     const hasTiller = !!r.hasTiller;
     const hasArtisan = !!r.hasArtisan;
-    const maxYears = clamp(Math.floor(Number(r.maxYears) || 5), 1, 20);
+    const maxYears = Math.max(1, Math.floor(Number(r.maxYears) || 5));
     return {
       season, day, money, quality, farmingLevel, fertilizerId, fertilizerAmount, enabledSources,
       processingMode, kegCount, caskCount, hasTiller, hasArtisan, maxYears,
