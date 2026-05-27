@@ -373,22 +373,22 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
 
   if (processingMode !== 'raw') {
     if (product === 'none') {
-      processingWarnings.push('No keg product — selling raw.');
+      processingWarnings.push('No keg product. Selling raw.');
       effectiveProcessingMode = 'raw';
     } else {
       kegProductLabel = KEG_PRODUCT_LABEL[product];
       const wantsAging = processingMode !== 'keg';
       let effectiveMode: ProcessingMode = processingMode;
       if (wantsAging && !isCaskable(product)) {
-        processingWarnings.push(`${kegProductLabel} cannot be cask aged — using keg-only value.`);
+        processingWarnings.push(`${kegProductLabel} cannot be cask aged. Using keg-only value.`);
         effectiveMode = 'keg';
       }
       if (wantsAging && (input.caskCount ?? 1) === 0) {
-        processingWarnings.push('No casks available — using keg-only value.');
+        processingWarnings.push('No casks available. Using keg-only value.');
         effectiveMode = 'keg';
       }
       if ((input.kegCount ?? 1) === 0) {
-        processingWarnings.push('No kegs available — selling raw.');
+        processingWarnings.push('No kegs available. Selling raw.');
         effectiveMode = 'raw';
       } else {
         const inputCount = Math.max(1, crop.kegInputCount ?? 1);
@@ -406,7 +406,7 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
         );
         const completionOffset = visibleDayFromMinute(scheduled.lastCompletionMinute);
         if (completionOffset > maxPlanDays) {
-          processingWarnings.push(`Processing would finish after ${offsetToDate(input.season, input.day, completionOffset)} — selling raw.`);
+          processingWarnings.push(`Processing would finish after ${offsetToDate(input.season, input.day, completionOffset)}. Selling raw.`);
           effectiveMode = 'raw';
         } else {
           processedCount = scheduled.processedGoods;
