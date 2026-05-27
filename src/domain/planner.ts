@@ -1,9 +1,19 @@
 import { FERTILIZER_BY_ID, qualityMix } from '../data/fertilizers';
 import {
+  KEG_PRODUCT_LABEL,
+  KEG_MINUTES,
+  MINUTES_PER_DAY,
+  caskMinutesForMode,
+  isCaskable,
+  processedUnitPrice,
+} from '../data/processing';
+import {
   Crop,
   CropPlan,
   DAYS_PER_SEASON,
   PlannerInput,
+  ProcessingMode,
+  ProcessingEvent,
   Quality,
   QualityMix,
   QUALITY_MULT,
@@ -38,6 +48,9 @@ export function harvestOffsets(
   day: number,
   speedMod = 0
 ): number[] {
+  if (crop.name === 'Tea Sapling') {
+    return teaSaplingHarvestOffsets(season, day, speedMod);
+  }
   const window = remainingValidDays(season, day, crop.seasons);
   const offsets: number[] = [];
   const first = speedGrowthDays(crop.growthDays, speedMod);
@@ -48,6 +61,23 @@ export function harvestOffsets(
     while (t <= window) {
       offsets.push(t);
       t += crop.regrowthDays;
+    }
+  }
+  return offsets;
+}
+
+function teaSaplingHarvestOffsets(season: Season, day: number, speedMod = 0): number[] {
+  const validSeasons: Season[] = ['Spring', 'Summer', 'Fall'];
+  if (!validSeasons.includes(season)) return [];
+  const startAbs = SEASONS.indexOf(season) * DAYS_PER_SEASON + (day - 1);
+  const matureAbs = startAbs + speedGrowthDays(20, speedMod);
+  const endAbs = SEASONS.indexOf('Fall') * DAYS_PER_SEASON + (DAYS_PER_SEASON - 1);
+  const offsets: number[] = [];
+  for (let abs = Math.max(matureAbs, startAbs); abs <= endAbs; abs++) {
+    const s = SEASONS[Math.floor(abs / DAYS_PER_SEASON)];
+    const d = (abs % DAYS_PER_SEASON) + 1;
+    if (validSeasons.includes(s) && d >= 22 && d <= 28) {
+      offsets.push(abs - startAbs);
     }
   }
   return offsets;
@@ -109,6 +139,105 @@ function unitMixValue(crop: Crop, mix: QualityMix): number {
 
 const NO_FERT_MIX: QualityMix = { regular: 1, silver: 0, gold: 0, iridium: 0 };
 
+function visibleDayFromMinute(minute: number): number {
+  return Math.floor((Math.max(0, minute) + 0.0001) / MINUTES_PER_DAY);
+}
+
+function addProcessingEvent(
+  events: ProcessingEvent[],
+  kind: ProcessingEvent['kind'],
+  minute: number,
+  count = 1
+): void {
+  const day = visibleDayFromMinute(minute);
+  const existing = events.find((e) => e.kind === kind && e.day === day);
+  if (existing) existing.count += count;
+  else events.push({ day, kind, count });
+}
+
+/** Schedule keg+cask processing for the whole planted batch.
+ *  `processedGoods` is output units (bottles/cups), while `consumedItems`
+ *  is raw crop items consumed. Coffee therefore consumes 5 beans but produces
+ *  1 Coffee. Limited kegs/casks are FIFO with minute-level durations. */
+function scheduleProcessing(
+  itemsPerHarvest: number,
+  inputCount: number,
+  harvestOffsetsArr: number[],
+  kegMinutes: number,
+  caskMinutes: number,
+  kegCount: number | undefined,   // undefined = unlimited
+  caskCount: number | undefined,  // undefined = unlimited
+): {
+  processedGoods: number;
+  consumedItems: number;
+  lastCompletionMinute: number;
+  events: ProcessingEvent[];
+} {
+  const empty = { processedGoods: 0, consumedItems: 0, lastCompletionMinute: 0, events: [] as ProcessingEvent[] };
+  if (kegCount === 0 || itemsPerHarvest === 0 || harvestOffsetsArr.length === 0) {
+    return empty;
+  }
+  const batches: number[] = []; // available start minute per output batch
+  let leftoverInputs = 0;
+  for (const h of harvestOffsetsArr) {
+    leftoverInputs += itemsPerHarvest;
+    while (leftoverInputs >= inputCount) {
+      batches.push(h * MINUTES_PER_DAY);
+      leftoverInputs -= inputCount;
+    }
+  }
+  if (batches.length === 0) return empty;
+
+  const kegSlots = kegCount === undefined ? Infinity : kegCount;
+  const kegFinishHeap: number[] = []; // sorted ascending
+  const kegCompletions: number[] = [];
+  const events: ProcessingEvent[] = [];
+  for (const start of batches) {
+    let realStart = start;
+    if (kegFinishHeap.length >= kegSlots) {
+      const earliestFree = kegFinishHeap.shift()!;
+      realStart = Math.max(realStart, earliestFree);
+    }
+    const done = realStart + kegMinutes;
+    addProcessingEvent(events, 'loadKeg', realStart);
+    addProcessingEvent(events, 'collectKeg', done);
+    kegCompletions.push(done);
+    let i = kegFinishHeap.length;
+    while (i > 0 && kegFinishHeap[i - 1] > done) i--;
+    kegFinishHeap.splice(i, 0, done);
+  }
+
+  const processedGoods = batches.length;
+  const consumedItems = batches.length * inputCount;
+  let lastCompletionMinute = kegCompletions[kegCompletions.length - 1];
+
+  if (caskMinutes > 0) {
+    if (caskCount === 0) {
+      return { processedGoods, consumedItems, lastCompletionMinute, events };
+    }
+    const caskSlots = caskCount === undefined ? Infinity : caskCount;
+    const caskHeap: number[] = [];
+    const caskCompletions: number[] = [];
+    for (const kegDone of kegCompletions) {
+      let realStart = kegDone;
+      if (caskHeap.length >= caskSlots) {
+        const earliestFree = caskHeap.shift()!;
+        realStart = Math.max(realStart, earliestFree);
+      }
+      const done = realStart + caskMinutes;
+      addProcessingEvent(events, 'loadCask', realStart);
+      addProcessingEvent(events, 'collectCask', done);
+      caskCompletions.push(done);
+      let i = caskHeap.length;
+      while (i > 0 && caskHeap[i - 1] > done) i--;
+      caskHeap.splice(i, 0, done);
+    }
+    lastCompletionMinute = caskCompletions[caskCompletions.length - 1];
+  }
+
+  return { processedGoods, consumedItems, lastCompletionMinute, events };
+}
+
 export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
   const fert = FERTILIZER_BY_ID[input.fertilizerId];
   const speedMod = fert?.speedMod ?? 0;
@@ -149,18 +278,84 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
 
   const harvestsPerSeed = offsets.length;
   const producePerSeed = harvestsPerSeed * crop.producePerHarvest;
-
-  const revenueFert = fertilizedSeeds * producePerSeed * unitFert;
-  const revenueBare = unfertilizedSeeds * producePerSeed * unitBare;
-  const revenue = revenueFert + revenueBare;
-
   const totalProduce = seedsBought * producePerSeed;
+
+  // ---- Raw-sale EV per item ----
+  const tillerMult = input.hasTiller ? 1.1 : 1;
+  const rawFert = fertilizedSeeds * producePerSeed * unitFert * tillerMult;
+  const rawBare = unfertilizedSeeds * producePerSeed * unitBare * tillerMult;
+  const rawSaleRevenueAllRaw = rawFert + rawBare;
+  const blendedRawUnit = totalProduce > 0 ? rawSaleRevenueAllRaw / totalProduce : 0;
+
+  // ---- Processing math ----
+  const processingMode: ProcessingMode = input.processingMode ?? 'raw';
+  const product = crop.kegProduct ?? 'none';
+  const processingWarnings: string[] = [];
+  let effectiveProcessingMode: ProcessingMode = processingMode;
+
+  let processedCount = 0;
+  let rawLeftoverCount = totalProduce;
+  let processedRevenue = 0;
+  let rawRevenue = rawSaleRevenueAllRaw;
+  let lastFinishedOffset = offsets[offsets.length - 1];
+  let kegProductLabel: string | undefined;
+  let processingEvents: ProcessingEvent[] = [];
+
+  if (processingMode !== 'raw') {
+    if (product === 'none') {
+      processingWarnings.push('No keg product — selling raw.');
+      effectiveProcessingMode = 'raw';
+    } else {
+      kegProductLabel = KEG_PRODUCT_LABEL[product];
+      const wantsAging = processingMode !== 'keg';
+      let effectiveMode: ProcessingMode = processingMode;
+      if (wantsAging && !isCaskable(product)) {
+        processingWarnings.push(`${kegProductLabel} cannot be cask aged — using keg-only value.`);
+        effectiveMode = 'keg';
+      }
+      if (wantsAging && (input.caskCount ?? 1) === 0) {
+        processingWarnings.push('No casks available — using keg-only value.');
+        effectiveMode = 'keg';
+      }
+      if ((input.kegCount ?? 1) === 0) {
+        processingWarnings.push('No kegs available — selling raw.');
+        effectiveMode = 'raw';
+      } else {
+        const inputCount = Math.max(1, crop.kegInputCount ?? 1);
+        const kegMinutes = KEG_MINUTES[product];
+        const caskMinutes = isCaskable(product) ? caskMinutesForMode(product, effectiveMode) : 0;
+        const scheduled = scheduleProcessing(
+          seedsBought * crop.producePerHarvest,
+          inputCount,
+          offsets,
+          kegMinutes,
+          caskMinutes,
+          input.kegCount,
+          effectiveMode === 'keg' ? undefined : input.caskCount,
+        );
+        processedCount = scheduled.processedGoods;
+        rawLeftoverCount = totalProduce - scheduled.consumedItems;
+        const unitPrice = processedUnitPrice(crop, effectiveMode, !!input.hasArtisan);
+        processedRevenue = processedCount * unitPrice;
+        rawRevenue = rawLeftoverCount * blendedRawUnit;
+        processingEvents = scheduled.events;
+        const completionOffset = visibleDayFromMinute(scheduled.lastCompletionMinute);
+        if (completionOffset > lastFinishedOffset) {
+          lastFinishedOffset = completionOffset;
+        }
+      }
+      effectiveProcessingMode = effectiveMode;
+    }
+  }
+
+  const revenue = rawRevenue + processedRevenue;
   const finalMoney = moneyAfterBuying + revenue;
   const netProfit = finalMoney - input.money;
-  const daysUsed = offsets[offsets.length - 1];
+  const daysUsed = lastFinishedOffset;
   const profitPerDay = daysUsed > 0 ? netProfit / daysUsed : 0;
 
   const harvestDates = offsets.map((o) => offsetToDate(input.season, input.day, o));
+  const lastFinishedDate = offsetToDate(input.season, input.day, lastFinishedOffset);
 
   const warnings: string[] = [];
   if (crop.notes) warnings.push(crop.notes);
@@ -200,10 +395,28 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
     qualityMixFertilized: mixFert,
     qualityMixUnfertilized: mixBare,
     effectiveGrowthDays: speedGrowthDays(crop.growthDays, speedMod),
+    processingMode,
+    effectiveProcessingMode,
+    kegProductLabel,
+    processedCount,
+    rawLeftoverCount,
+    rawRevenue,
+    processedRevenue,
+    lastFinishedDate,
+    processingWarnings,
+    processingEvents,
   };
 }
 
-export type CalendarEventKind = 'plant' | 'water' | 'harvest' | 'regrowHarvest';
+export type CalendarEventKind =
+  | 'plant'
+  | 'water'
+  | 'harvest'
+  | 'regrowHarvest'
+  | 'loadKeg'
+  | 'collectKeg'
+  | 'loadCask'
+  | 'collectCask';
 
 export interface CalendarEvent {
   day: number;
@@ -221,9 +434,11 @@ export function calendarEvents(
   const events: CalendarEvent[] = [{ day, kind: 'plant' }];
   const lastHarvest = offsets[offsets.length - 1];
   const harvestDays = new Set(offsets.map((o) => day + o));
-  for (let d = day + 1; d <= day + lastHarvest; d++) {
-    if (harvestDays.has(d)) continue;
-    events.push({ day: d, kind: 'water' });
+  if (crop.name !== 'Tea Sapling') {
+    for (let d = day + 1; d <= day + lastHarvest; d++) {
+      if (harvestDays.has(d)) continue;
+      events.push({ day: d, kind: 'water' });
+    }
   }
   offsets.forEach((o, i) => {
     events.push({ day: day + o, kind: i === 0 ? 'harvest' : 'regrowHarvest' });

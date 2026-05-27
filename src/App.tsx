@@ -21,7 +21,9 @@ import {
   saveTrackedCrops,
 } from './data/trackedCrops';
 import { rankCrops } from './domain/planner';
-import { FarmingLevel, FertilizerId, Quality, Season, SeedSource } from './domain/types';
+import {
+  FarmingLevel, FertilizerId, ProcessingMode, Quality, Season, SeedSource,
+} from './domain/types';
 
 type Page = 'planner' | 'workshop' | 'patch';
 type Theme = 'light' | 'dark';
@@ -53,13 +55,22 @@ export default function App() {
   const [enabled, setEnabled] = useState<SeedSource[]>(
     initialInputs.enabledSources.length > 0 ? initialInputs.enabledSources : DEFAULT_ENABLED
   );
+  const [processingMode, setProcessingMode] = useState<ProcessingMode>(initialInputs.processingMode);
+  const [kegCount, setKegCount] = useState<number | undefined>(initialInputs.kegCount);
+  const [caskCount, setCaskCount] = useState<number | undefined>(initialInputs.caskCount);
+  const [hasTiller, setHasTiller] = useState(initialInputs.hasTiller);
+  const [hasArtisan, setHasArtisan] = useState(initialInputs.hasArtisan);
 
   useEffect(() => {
     savePlannerInputs({
       season, day, money, quality, farmingLevel,
       fertilizerId, fertilizerAmount, enabledSources: enabled,
+      processingMode, kegCount, caskCount, hasTiller, hasArtisan,
     });
-  }, [season, day, money, quality, farmingLevel, fertilizerId, fertilizerAmount, enabled]);
+  }, [
+    season, day, money, quality, farmingLevel, fertilizerId, fertilizerAmount, enabled,
+    processingMode, kegCount, caskCount, hasTiller, hasArtisan,
+  ]);
   const [selectedCrop, setSelectedCrop] = useState<string | null>(null);
   const [tracked, setTracked] = useState<TrackedCrop[]>(() => loadTrackedCrops());
   const [today, setToday] = useState<CurrentDay>(() => loadToday());
@@ -77,6 +88,7 @@ export default function App() {
         cropName,
         season, day, farmingLevel, fertilizerId, fertilizerAmount,
         seedsBought: plan.seedsBought,
+        processingMode, kegCount, caskCount, hasTiller, hasArtisan,
       }),
     ]);
     setFarmOpen(true);
@@ -86,8 +98,12 @@ export default function App() {
     () => rankCrops(CROPS, {
       season, day, money, quality, enabledSources: enabled,
       farmingLevel, fertilizerId, fertilizerAmount,
+      processingMode, kegCount, caskCount, hasTiller, hasArtisan,
     }),
-    [season, day, money, quality, enabled, farmingLevel, fertilizerId, fertilizerAmount]
+    [
+      season, day, money, quality, enabled, farmingLevel, fertilizerId, fertilizerAmount,
+      processingMode, kegCount, caskCount, hasTiller, hasArtisan,
+    ]
   );
 
   const fert = FERTILIZER_BY_ID[fertilizerId];
@@ -150,7 +166,7 @@ export default function App() {
       {page === 'planner' && (
         <>
           <p className="subtitle">
-            Pick a date, set your gold, and see which crops earn the most before the season ends.
+            Pick a date, set your gold, and compare raw harvests, keg goods, and aged artisan plans.
           </p>
 
           <Controls
@@ -161,6 +177,11 @@ export default function App() {
             farmingLevel={farmingLevel}
             fertilizerId={fertilizerId}
             fertilizerAmount={fertilizerAmount}
+            processingMode={processingMode}
+            kegCount={kegCount}
+            caskCount={caskCount}
+            hasTiller={hasTiller}
+            hasArtisan={hasArtisan}
             onChange={(p) => {
               if (p.season !== undefined) setSeason(p.season);
               if (p.day !== undefined) setDay(p.day);
@@ -171,6 +192,11 @@ export default function App() {
               if (Object.prototype.hasOwnProperty.call(p, 'fertilizerAmount')) {
                 setFertilizerAmount(p.fertilizerAmount);
               }
+              if (p.processingMode !== undefined) setProcessingMode(p.processingMode);
+              if (Object.prototype.hasOwnProperty.call(p, 'kegCount')) setKegCount(p.kegCount);
+              if (Object.prototype.hasOwnProperty.call(p, 'caskCount')) setCaskCount(p.caskCount);
+              if (p.hasTiller !== undefined) setHasTiller(p.hasTiller);
+              if (p.hasArtisan !== undefined) setHasArtisan(p.hasArtisan);
             }}
           />
 
@@ -178,7 +204,7 @@ export default function App() {
 
           <section className="panel">
             <div className="panel-head">
-              <h2>Best profit before season end</h2>
+              <h2>Best profit from this planting</h2>
               <span className="summary">
                 {season} {day} · Farming L{farmingLevel} · <Icon emoji={fert.emoji} /> {fert.name} · {plans.length} match{plans.length === 1 ? '' : 'es'}
               </span>

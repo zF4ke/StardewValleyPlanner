@@ -41,13 +41,20 @@ function getStatus(t: TrackedCrop, today: CurrentDay): StatusInfo {
     const days = -daysSincePlant;
     return { text: `Planting in ${days} day${days === 1 ? '' : 's'} — ${formatDate(fromAbsolute(plantedAbs))}.`, tone: 'pending' };
   }
-  const upcoming = offsets.find((o) => o >= daysSincePlant);
-  if (upcoming === undefined) return { text: 'All harvests done.', tone: 'done' };
-  const daysToHarvest = upcoming - daysSincePlant;
-  const harvestDate = formatDate(fromAbsolute(plantedAbs + upcoming));
-  if (daysToHarvest === 0) return { text: `Harvest today! (${harvestDate})`, tone: 'today' };
-  if (daysToHarvest <= 2) return { text: `Harvest in ${daysToHarvest} day${daysToHarvest === 1 ? '' : 's'} — ${harvestDate}.`, tone: 'soon' };
-  return { text: `Next harvest in ${daysToHarvest} days — ${harvestDate}.`, tone: 'pending' };
+  const plan = planFromTracked(t);
+  const actions = offsets.map((offset) => ({ offset, label: 'Harvest' }));
+  for (const e of plan?.processingEvents ?? []) {
+    if (e.kind === 'collectKeg') actions.push({ offset: e.day, label: 'Collect keg product' });
+    if (e.kind === 'collectCask') actions.push({ offset: e.day, label: 'Collect aged product' });
+  }
+  actions.sort((a, b) => a.offset - b.offset);
+  const upcoming = actions.find((a) => a.offset >= daysSincePlant);
+  if (upcoming === undefined) return { text: 'All harvests and processing done.', tone: 'done' };
+  const daysToAction = upcoming.offset - daysSincePlant;
+  const actionDate = formatDate(fromAbsolute(plantedAbs + upcoming.offset));
+  if (daysToAction === 0) return { text: `${upcoming.label} today! (${actionDate})`, tone: 'today' };
+  if (daysToAction <= 2) return { text: `${upcoming.label} in ${daysToAction} day${daysToAction === 1 ? '' : 's'} — ${actionDate}.`, tone: 'soon' };
+  return { text: `Next: ${upcoming.label.toLowerCase()} in ${daysToAction} days — ${actionDate}.`, tone: 'pending' };
 }
 
 /** Rebuild the same CropPlan the right-drawer would have shown when this
@@ -63,6 +70,11 @@ function planFromTracked(t: TrackedCrop): CropPlan | null {
     farmingLevel: t.farmingLevel,
     fertilizerId: t.fertilizerId,
     fertilizerAmount: t.fertilizerAmount,
+    processingMode: t.processingMode ?? 'raw',
+    kegCount: t.kegCount,
+    caskCount: t.caskCount,
+    hasTiller: t.hasTiller,
+    hasArtisan: t.hasArtisan,
   });
 }
 

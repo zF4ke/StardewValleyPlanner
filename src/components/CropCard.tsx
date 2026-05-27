@@ -90,6 +90,29 @@ export function CropCard({ plan, rank, onSelect }: Props) {
         )}
       </div>
 
+      {plan.processingMode !== 'raw' && (
+        <div className="proc-block">
+          <div className="proc-head">
+            <b>
+              {plan.crop.name}
+              {plan.kegProductLabel && ` → ${plan.kegProductLabel}`}
+              {plan.effectiveProcessingMode === 'silver-aged'  && plan.kegProductLabel && ' → Silver'}
+              {plan.effectiveProcessingMode === 'gold-aged'    && plan.kegProductLabel && ' → Gold'}
+              {plan.effectiveProcessingMode === 'iridium-aged' && plan.kegProductLabel && ' → Iridium'}
+            </b>
+          </div>
+          <div className="proc-split">
+            {plan.processedCount} processed · {plan.rawLeftoverCount} raw leftover
+          </div>
+          {plan.lastFinishedDate && (
+            <div className="proc-split">Last finished: {plan.lastFinishedDate}</div>
+          )}
+          {plan.processingWarnings.map((w) => (
+            <div className="proc-warn" key={w}>{w}</div>
+          ))}
+        </div>
+      )}
+
       {plan.fertilizerId !== 'none' && (() => {
         const fert = FERTILIZER_BY_ID[plan.fertilizerId];
         const mix = plan.qualityMixFertilized;

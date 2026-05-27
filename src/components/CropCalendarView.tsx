@@ -1,4 +1,4 @@
-import { calendarEvents } from '../domain/planner';
+import { calendarEvents, offsetToDate } from '../domain/planner';
 import { FERTILIZER_BY_ID } from '../data/fertilizers';
 import { CropPlan, DAYS_PER_SEASON, Season } from '../domain/types';
 import { Icon } from './Icon';
@@ -7,12 +7,26 @@ const gold = (n: number) => `${Math.round(n).toLocaleString()}g`;
 
 const DAY_HEADERS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-type CellKind = 'plant' | 'water' | 'harvest' | 'regrowHarvest';
+type CellKind = 'plant' | 'water' | 'harvest' | 'regrowHarvest' | 'loadKeg' | 'collectKeg' | 'loadCask' | 'collectCask';
 const KIND_LABEL: Record<CellKind, string> = {
-  plant: '🌱', water: '💧', harvest: '⭐', regrowHarvest: '⭐',
+  plant: '🌱',
+  water: '💧',
+  harvest: '⭐',
+  regrowHarvest: '⭐',
+  loadKeg: '🛢️',
+  collectKeg: '🍷',
+  loadCask: '🌳',
+  collectCask: '💎',
 };
 const KIND_TITLE: Record<CellKind, string> = {
-  plant: 'Plant', water: 'Water', harvest: 'First harvest', regrowHarvest: 'Later harvest',
+  plant: 'Plant',
+  water: 'Water',
+  harvest: 'First harvest',
+  regrowHarvest: 'Later harvest',
+  loadKeg: 'Load keg',
+  collectKeg: 'Collect keg product',
+  loadCask: 'Load cask',
+  collectCask: 'Collect aged product',
 };
 
 interface Props {
@@ -26,18 +40,33 @@ interface Props {
 export function CropCalendarView({ plan, season, day, todayDayOfSeason }: Props) {
   const fert = FERTILIZER_BY_ID[plan.fertilizerId];
   const events = calendarEvents(plan.crop, season, day, fert.speedMod);
-  const byDay = new Map<number, CellKind>();
-  const priority: CellKind[] = ['harvest', 'regrowHarvest', 'plant', 'water'];
-  for (const e of events) {
-    if (e.day < 1 || e.day > DAYS_PER_SEASON) continue;
-    const existing = byDay.get(e.day);
-    if (!existing || priority.indexOf(e.kind) < priority.indexOf(existing)) {
-      byDay.set(e.day, e.kind);
+  const byDay = new Map<number, CellKind[]>();
+  const priority: CellKind[] = [
+    'collectCask', 'collectKeg', 'harvest', 'regrowHarvest',
+    'loadCask', 'loadKeg', 'plant', 'water',
+  ];
+  const addKind = (calendarDay: number, kind: CellKind) => {
+    if (calendarDay < 1 || calendarDay > DAYS_PER_SEASON) return;
+    const list = byDay.get(calendarDay) ?? [];
+    if (!list.includes(kind)) {
+      list.push(kind);
+      list.sort((a, b) => priority.indexOf(a) - priority.indexOf(b));
+      byDay.set(calendarDay, list);
     }
+  };
+  for (const e of events) {
+    addKind(e.day, e.kind as CellKind);
+  }
+  for (const e of plan.processingEvents) {
+    addKind(day + e.day, e.kind);
   }
 
   const crop = plan.crop;
   const laterHarvests = Math.max(0, plan.harvestDays.length - 1);
+  const processingDates = plan.processingEvents
+    .filter((e) => e.kind === 'collectKeg' || e.kind === 'collectCask')
+    .map((e) => `${e.count} ${KIND_TITLE[e.kind].replace('Collect ', '')}: ${offsetToDate(season, day, e.day)}`);
+  const visibleProcessingDates = compactList(processingDates);
 
   return (
     <>
@@ -48,7 +77,8 @@ export function CropCalendarView({ plan, season, day, todayDayOfSeason }: Props)
             <div key={d} className="cal-head">{d}</div>
           ))}
           {Array.from({ length: DAYS_PER_SEASON }, (_, i) => i + 1).map((d) => {
-            const kind = byDay.get(d);
+            const kinds = byDay.get(d) ?? [];
+            const kind = kinds[0];
             const isToday = todayDayOfSeason !== undefined && d === todayDayOfSeason;
             return (
               <div
@@ -58,10 +88,16 @@ export function CropCalendarView({ plan, season, day, todayDayOfSeason }: Props)
                   + (kind ? ` k-${kind}` : '')
                   + (isToday ? ' is-today' : '')
                 }
-                title={kind ? `${KIND_TITLE[kind]} · ${season} ${d}` : `${season} ${d}`}
+                title={kinds.length > 0 ? `${kinds.map((k) => KIND_TITLE[k]).join(' + ')} · ${season} ${d}` : `${season} ${d}`}
               >
                 <span className="cal-day">{d}</span>
-                {kind && <Icon emoji={KIND_LABEL[kind]} className="cal-icon" />}
+                {kinds.length > 0 && (
+                  <span className="cal-icons">
+                    {kinds.slice(0, 3).map((k) => (
+                      <Icon key={k} emoji={KIND_LABEL[k]} className="cal-icon" />
+                    ))}
+                  </span>
+                )}
               </div>
             );
           })}
@@ -71,6 +107,8 @@ export function CropCalendarView({ plan, season, day, todayDayOfSeason }: Props)
           <span><span className="swatch k-water" /> Water</span>
           <span><span className="swatch k-harvest" /> First harvest</span>
           {crop.regrowthDays && <span><span className="swatch k-regrowHarvest" /> Later harvests</span>}
+          {plan.processingMode !== 'raw' && <span><span className="swatch k-loadKeg" /> Keg/cask work</span>}
+          {plan.processingMode !== 'raw' && <span><span className="swatch k-collectKeg" /> Collect artisan goods</span>}
           {todayDayOfSeason !== undefined && <span><span className="swatch is-today-swatch" /> Today</span>}
         </div>
       </section>
@@ -91,10 +129,29 @@ export function CropCalendarView({ plan, season, day, todayDayOfSeason }: Props)
           <div><span>Revenue</span><b>{gold(plan.revenue)}</b></div>
           <div><span>Final gold</span><b>{gold(plan.finalMoney)}</b></div>
           <div><span>Net profit</span><b className={'profit' + (plan.netProfit < 0 ? ' neg' : '')}>{gold(plan.netProfit)}</b></div>
+          {plan.processingMode !== 'raw' && (
+            <>
+              <div><span>Processed</span><b>{plan.processedCount}{plan.kegProductLabel ? ` ${plan.kegProductLabel}` : ''}</b></div>
+              <div><span>Raw leftover</span><b>{plan.rawLeftoverCount}</b></div>
+              <div><span>Last finished</span><b>{plan.lastFinishedDate}</b></div>
+            </>
+          )}
         </div>
         <div className="harvest-dates">
           <span className="kv-label">Harvest dates:</span> {plan.harvestDates.join(' · ')}
         </div>
+        {plan.processingWarnings.length > 0 && (
+          <div className="harvest-dates" style={{ marginTop: 4 }}>
+            {plan.processingWarnings.map((w) => (
+              <div key={w} className="note-line"><b>Heads up:</b> {w}</div>
+            ))}
+          </div>
+        )}
+        {visibleProcessingDates.length > 0 && (
+          <div className="harvest-dates">
+            <span className="kv-label">Processing dates:</span> {visibleProcessingDates.join(' · ')}
+          </div>
+        )}
         {crop.regrowthDays && (
           <p className="note-line">
             {laterHarvests > 0
@@ -117,4 +174,13 @@ export function CropCalendarView({ plan, season, day, todayDayOfSeason }: Props)
       )}
     </>
   );
+}
+
+function compactList(items: string[]): string[] {
+  if (items.length <= 14) return items;
+  return [
+    ...items.slice(0, 10),
+    `… ${items.length - 12} more …`,
+    ...items.slice(-2),
+  ];
 }

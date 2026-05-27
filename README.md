@@ -21,11 +21,11 @@
 
 A tiny, in-browser planner for [Stardew Valley](https://www.stardewvalley.net/) farms.
 Tell it what season it is, how much gold you have, and which seeds you can actually buy —
-it tells you which crops will leave you the richest before the season ends.
+it tells you which planting plan leaves you richest, including optional keg and cask processing.
 
 ## ✨ What's inside
 
-The **crop planner** ranks crops by profit for the day, gold, and shops you've got — quality odds, fertilizer, Speed-Gro and regrowth all baked in.
+The **crop planner** ranks crops by profit for the day, gold, and shops you've got — quality odds, fertilizer, Speed-Gro, regrowth, kegs, casks, and profession bonuses all baked in.
 
 The **fertilizer workshop** compares buying vs. crafting and picks the cheaper one.
 
@@ -49,7 +49,7 @@ That is the whole setup. No env vars, no database, no auth.
 
 ## 🧠 How it thinks
 
-Crops are ranked on a single metric: **net profit before the season ends**, given:
+Crops are ranked on a single metric: **net profit from the selected planting**, given:
 
 - The selected season + day (the planting day itself doesn't count as a growth day).
 - The seeds you can afford with the gold you have.
@@ -69,6 +69,12 @@ Crops are ranked on a single metric: **net profit before the season ends**, give
 If you only have, say, 10 Quality Fertilizer but you're buying 50 Parsnip seeds,
 the planner splits them: 10 fertilized seeds + 40 on bare soil, each batch priced at its own expected value.
 
+## 🍷 Artisan Processing
+
+The crop planner can optionally sell crops raw, run eligible crops through kegs, or age caskable keg goods to Silver, Gold, or Iridium. Wine, Juice, Beer, Pale Ale, Coffee, and Green Tea use the Stardew Wiki keg values and processing times.
+
+Keg and cask counts are optional. Leave them blank for unlimited machines, enter `0` when you have none, or set a count to queue the whole harvest through your available machines. Coffee correctly consumes 5 Coffee Beans per cup, and Coffee does not receive the Artisan profession bonus.
+
 ## 🧪 Fertilizer Workshop
 
 Pick a fertilizer and a quantity. The workshop compares:
@@ -80,7 +86,7 @@ It highlights the cheapest path, lists the ingredient totals, and shows leftover
 
 ## 📌 My Farm
 
-Track a crop plan from its calendar view and it lands in **My Farm**. The drawer keeps a local list of planted crops, lets you move the current day forward or backward, and marks upcoming harvests on each crop's mini calendar.
+Track a crop plan from its calendar view and it lands in **My Farm**. The drawer keeps a local list of planted crops, lets you move the current day forward or backward, and marks upcoming harvests and artisan collection dates on each crop's mini calendar.
 
 Planner inputs and tracked crops are saved in this browser with `localStorage`, so your setup is still there after a refresh. There is no account, sync, or backend.
 
@@ -88,7 +94,7 @@ Planner inputs and tracked crops are saved in this browser with `localStorage`, 
 
 ```
 src/
-  data/         crops, fertilizers, patch notes, saved planner/farm state
+  data/         crops, fertilizers, processing, patch notes, saved state
   domain/       planner math + types
   components/   Controls, CropCard, CropCalendarDrawer, CropCalendarView,
                 TrackedCropsDrawer, FertilizerWorkshop, PatchNotes, Filters
@@ -97,7 +103,7 @@ src/
 ```
 
 Everything is plain TypeScript + React. No state library, no routing library —
-just local component state plus browser storage.
+local component state plus browser storage power the app.
 
 ## 🌱 Data
 

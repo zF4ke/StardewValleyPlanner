@@ -23,6 +23,9 @@ export type SeedSource =
   | 'SeedMaker'    // can only be made via Seed Maker
   | 'Special';     // Sweet Gem Berry, Ancient Fruit, Powdermelon etc.
 
+export type CropCategory = 'fruit' | 'vegetable' | 'flower' | 'special';
+export type KegProduct = 'wine' | 'juice' | 'beer' | 'pale-ale' | 'coffee' | 'green-tea' | 'none';
+
 export interface Crop {
   name: string;
   seasons: Season[];           // valid growing seasons; multi-season survives across listed
@@ -36,6 +39,11 @@ export interface Crop {
   notes?: string;              // mechanic/assumption note (extra-yield, giant crop, etc.)
   accessNote?: string;         // how to obtain the seed (Year 2+, festival day, trade cost…)
   emoji?: string;              // small icon glyph fallback
+  // ---- v0.7 processing ----
+  cropCategory?: CropCategory;
+  kegProduct?: KegProduct;
+  kegInputCount?: number;      // items consumed per keg cycle (5 for Coffee Beans, 1 otherwise)
+  caskable?: boolean;          // true only for wine/beer/pale-ale
 }
 
 export type FertilizerId =
@@ -53,6 +61,8 @@ export type FertilizerId =
 
 export type FarmingLevel = 0|1|2|3|4|5|6|7|8|9|10|11|12|13|14;
 
+export type ProcessingMode = 'raw' | 'keg' | 'silver-aged' | 'gold-aged' | 'iridium-aged';
+
 export interface PlannerInput {
   season: Season;
   day: number;             // 1..28
@@ -63,6 +73,12 @@ export interface PlannerInput {
   fertilizerId: FertilizerId;
   /** Limited fertilizer mode. undefined = assume enough fertilizer for every seed. */
   fertilizerAmount?: number;
+  // ---- v0.7 processing ----
+  processingMode?: ProcessingMode;     // default 'raw'
+  kegCount?: number;                   // undefined = unlimited, 0 = none available
+  caskCount?: number;                  // undefined = unlimited, 0 = none available
+  hasTiller?: boolean;                 // +10% raw crop sales
+  hasArtisan?: boolean;                // +40% on most artisan goods (not Coffee)
 }
 
 export interface QualityMix {
@@ -98,4 +114,23 @@ export interface CropPlan {
   qualityMixFertilized: QualityMix;
   qualityMixUnfertilized: QualityMix;
   effectiveGrowthDays: number;       // after Speed-Gro
+  // ---- v0.7 processing ----
+  processingMode: ProcessingMode;
+  effectiveProcessingMode: ProcessingMode;
+  kegProductLabel?: string;          // "Wine", "Juice", "Beer", "Pale Ale", "Coffee", "Green Tea"
+  processedCount: number;            // # of processed goods produced
+  rawLeftoverCount: number;          // # of raw items sold without processing
+  rawRevenue: number;                // gold from raw sales
+  processedRevenue: number;          // gold from processed sales
+  lastFinishedDate?: string;         // pretty date of the last collection (keg or cask)
+  processingWarnings: string[];      // "No keg product", "Cannot be cask aged", etc.
+  processingEvents: ProcessingEvent[];
+}
+
+export type ProcessingEventKind = 'loadKeg' | 'collectKeg' | 'loadCask' | 'collectCask';
+
+export interface ProcessingEvent {
+  day: number;                       // day offset from selected planting date
+  kind: ProcessingEventKind;
+  count: number;                     // number of output goods involved in this event
 }

@@ -8,6 +8,16 @@ export interface PatchNote {
 /** Newest first. The first entry is treated as the current app version. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: 'v0.7.0',
+    title: 'Artisan Processing',
+    bullets: [
+      'Choose to sell crops raw, ferment them in kegs, or age the keg products in casks.',
+      'Limit kegs and casks if you only have a few; the planner queues each batch and shows the final collection date.',
+      'Tiller and Artisan profession toggles apply the right bonuses to raw vs. processed.',
+      'Crop calendars now mark keg and cask work alongside planting, watering, and harvests.',
+    ],
+  },
+  {
     version: 'v0.6.0',
     title: 'My Farm',
     bullets: [

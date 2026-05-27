@@ -2,6 +2,7 @@ import { FERTILIZER_BY_ID } from './fertilizers';
 import {
   FarmingLevel,
   FertilizerId,
+  ProcessingMode,
   Quality,
   Season,
   SEASONS,
@@ -25,7 +26,14 @@ export interface PlannerInputs {
   fertilizerId: FertilizerId;
   fertilizerAmount?: number;
   enabledSources: SeedSource[];
+  processingMode: ProcessingMode;
+  kegCount?: number;
+  caskCount?: number;
+  hasTiller: boolean;
+  hasArtisan: boolean;
 }
+
+const VALID_MODES: ProcessingMode[] = ['raw', 'keg', 'silver-aged', 'gold-aged', 'iridium-aged'];
 
 export const DEFAULT_INPUTS: PlannerInputs = {
   season: 'Spring',
@@ -36,6 +44,11 @@ export const DEFAULT_INPUTS: PlannerInputs = {
   fertilizerId: 'none',
   fertilizerAmount: undefined,
   enabledSources: ['Pierre', 'JojaMart'],
+  processingMode: 'raw',
+  kegCount: undefined,
+  caskCount: undefined,
+  hasTiller: false,
+  hasArtisan: false,
 };
 
 function clamp(n: number, lo: number, hi: number): number {
@@ -66,7 +79,21 @@ export function loadPlannerInputs(): PlannerInputs {
           (s): s is SeedSource => typeof s === 'string' && VALID_SOURCES.includes(s as SeedSource)
         )
       : DEFAULT_INPUTS.enabledSources;
-    return { season, day, money, quality, farmingLevel, fertilizerId, fertilizerAmount, enabledSources };
+    const processingMode: ProcessingMode = VALID_MODES.includes(r.processingMode as ProcessingMode)
+      ? (r.processingMode as ProcessingMode) : 'raw';
+    const parseOptCount = (v: unknown): number | undefined => {
+      if (v === null || v === undefined) return undefined;
+      const n = Number(v);
+      return Number.isFinite(n) && n >= 0 ? Math.floor(n) : undefined;
+    };
+    const kegCount = parseOptCount(r.kegCount);
+    const caskCount = parseOptCount(r.caskCount);
+    const hasTiller = !!r.hasTiller;
+    const hasArtisan = !!r.hasArtisan;
+    return {
+      season, day, money, quality, farmingLevel, fertilizerId, fertilizerAmount, enabledSources,
+      processingMode, kegCount, caskCount, hasTiller, hasArtisan,
+    };
   } catch {
     return DEFAULT_INPUTS;
   }

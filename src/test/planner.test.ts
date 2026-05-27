@@ -136,6 +136,16 @@ describe('calendar events', () => {
     const firstHarvest = evs.find((e) => e.kind === 'harvest');
     expect(firstHarvest?.day).toBe(34);
   });
+
+  it('Tea Sapling only produces during the last week of valid seasons', () => {
+    const tea = CROPS.find((c) => c.name === 'Tea Sapling')!;
+    const offs = harvestOffsets(tea, 'Spring', 1);
+    expect(offs.slice(0, 7)).toEqual([21, 22, 23, 24, 25, 26, 27]);
+    expect(offs).not.toContain(28); // Summer 1 is not a Tea Leaves day.
+    expect(offs).toContain(49);     // Summer 22.
+    const evs = calendarEvents(tea, 'Spring', 1);
+    expect(evs.some((e) => e.kind === 'water')).toBe(false);
+  });
 });
 
 describe('ranking', () => {
@@ -351,5 +361,172 @@ describe('tracked crops', () => {
     const { validateToday } = await import('../data/trackedCrops');
     expect(validateToday({ season: 'Bogus', day: 99, year: -1 }))
       .toEqual({ season: 'Spring', day: 28, year: 1 });
+  });
+});
+
+describe('artisan processing — product mapping', () => {
+  it('Wine is produced by fruits like Melon, Starfruit, Ancient Fruit', () => {
+    for (const name of ['Melon', 'Starfruit', 'Ancient Fruit']) {
+      const c = CROPS.find((x) => x.name === name)!;
+      expect(c.kegProduct).toBe('wine');
+      expect(c.caskable).toBe(true);
+    }
+  });
+
+  it('Wheat makes Beer, Hops makes Pale Ale, Tea Sapling makes Green Tea, Coffee uses 5 beans', () => {
+    expect(CROPS.find((x) => x.name === 'Wheat')!.kegProduct).toBe('beer');
+    expect(CROPS.find((x) => x.name === 'Hops')!.kegProduct).toBe('pale-ale');
+    expect(CROPS.find((x) => x.name === 'Tea Sapling')!.kegProduct).toBe('green-tea');
+    const coffee = CROPS.find((x) => x.name === 'Coffee Bean')!;
+    expect(coffee.kegProduct).toBe('coffee');
+    expect(coffee.kegInputCount).toBe(5);
+  });
+
+  it('Flowers and Sweet Gem Berry have no keg product', () => {
+    for (const name of ['Tulip', 'Poppy', 'Fairy Rose', 'Sweet Gem Berry']) {
+      const c = CROPS.find((x) => x.name === name)!;
+      expect(c.kegProduct).toBe('none');
+    }
+  });
+});
+
+describe('artisan processing — pricing', () => {
+  it('Starfruit Wine = 2250g; Iridium = 4500g; with Artisan = 6300g', async () => {
+    const { processedUnitPrice } = await import('../data/processing');
+    const starfruit = CROPS.find((c) => c.name === 'Starfruit')!;
+    expect(processedUnitPrice(starfruit, 'keg', false)).toBe(2250);
+    expect(processedUnitPrice(starfruit, 'iridium-aged', false)).toBe(4500);
+    expect(processedUnitPrice(starfruit, 'iridium-aged', true)).toBe(6300);
+  });
+
+  it('Beer aging tiers: 200/250/300/400g', async () => {
+    const { processedUnitPrice } = await import('../data/processing');
+    const wheat = CROPS.find((c) => c.name === 'Wheat')!;
+    expect(processedUnitPrice(wheat, 'keg', false)).toBe(200);
+    expect(processedUnitPrice(wheat, 'silver-aged', false)).toBe(250);
+    expect(processedUnitPrice(wheat, 'gold-aged', false)).toBe(300);
+    expect(processedUnitPrice(wheat, 'iridium-aged', false)).toBe(400);
+  });
+
+  it('Pale Ale aging tiers: 300/375/450/600g', async () => {
+    const { processedUnitPrice } = await import('../data/processing');
+    const hops = CROPS.find((c) => c.name === 'Hops')!;
+    expect(processedUnitPrice(hops, 'keg', false)).toBe(300);
+    expect(processedUnitPrice(hops, 'silver-aged', false)).toBe(375);
+    expect(processedUnitPrice(hops, 'gold-aged', false)).toBe(450);
+    expect(processedUnitPrice(hops, 'iridium-aged', false)).toBe(600);
+  });
+
+  it('Coffee does not receive Artisan bonus', async () => {
+    const { processedUnitPrice } = await import('../data/processing');
+    const coffeeBean = CROPS.find((c) => c.name === 'Coffee Bean')!;
+    expect(processedUnitPrice(coffeeBean, 'keg', false)).toBe(150);
+    expect(processedUnitPrice(coffeeBean, 'keg', true)).toBe(150);
+  });
+
+  it('Coffee processing counts cups, not beans', () => {
+    const coffeeBean = CROPS.find((c) => c.name === 'Coffee Bean')!;
+    const plan = planCrop(coffeeBean, {
+      season: 'Spring', day: 1, money: 100000, quality: 'Regular',
+      enabledSources: ['TravelingCart'], farmingLevel: 0, fertilizerId: 'none',
+      processingMode: 'keg',
+    })!;
+    expect(plan.totalProduce).toBe(3680);
+    expect(plan.processedCount).toBe(736);
+    expect(plan.rawLeftoverCount).toBe(0);
+    expect(plan.processedRevenue).toBe(736 * 150);
+  });
+});
+
+describe('artisan processing — scheduling & raw leftovers', () => {
+  const baseProcInput: PlannerInput = {
+    season: 'Summer', day: 1, money: 100000, quality: 'Regular',
+    enabledSources: ['Pierre', 'JojaMart', 'Oasis'],
+    farmingLevel: 0, fertilizerId: 'none',
+  };
+
+  it('unlimited kegs process every harvested item; raw leftover = 0', () => {
+    const blueberry = CROPS.find((c) => c.name === 'Blueberry')!;
+    const plan = planCrop(blueberry, { ...baseProcInput, processingMode: 'keg' })!;
+    expect(plan.processedCount).toBe(plan.totalProduce);
+    expect(plan.rawLeftoverCount).toBe(0);
+  });
+
+  it('0 kegs falls back to raw sale with a warning', () => {
+    const blueberry = CROPS.find((c) => c.name === 'Blueberry')!;
+    const plan = planCrop(blueberry, { ...baseProcInput, processingMode: 'keg', kegCount: 0 })!;
+    expect(plan.processedCount).toBe(0);
+    expect(plan.rawLeftoverCount).toBe(plan.totalProduce);
+    expect(plan.processingWarnings.some((w) => w.toLowerCase().includes('no kegs'))).toBe(true);
+  });
+
+  it('aged mode on a non-caskable product (Juice) falls back to keg-only', () => {
+    const cauliflower = CROPS.find((c) => c.name === 'Cauliflower')!;
+    const plan = planCrop(cauliflower, { ...baseProcInput, season: 'Spring', processingMode: 'gold-aged' })!;
+    expect(plan.processingWarnings.some((w) => w.toLowerCase().includes('cannot be cask aged'))).toBe(true);
+    expect(plan.effectiveProcessingMode).toBe('keg');
+  });
+
+  it('0 casks in aged mode falls back to keg-only with a warning', () => {
+    const starfruit = CROPS.find((c) => c.name === 'Starfruit')!;
+    const plan = planCrop(starfruit, { ...baseProcInput, processingMode: 'gold-aged', caskCount: 0 })!;
+    expect(plan.processingWarnings.some((w) => w.toLowerCase().includes('no casks'))).toBe(true);
+    expect(plan.effectiveProcessingMode).toBe('keg');
+  });
+
+  it('"No keg product" warning when processing a flower', () => {
+    const poppy = CROPS.find((c) => c.name === 'Poppy')!;
+    const plan = planCrop(poppy, { ...baseProcInput, processingMode: 'keg' })!;
+    expect(plan.processingWarnings.some((w) => w.toLowerCase().includes('no keg product'))).toBe(true);
+    expect(plan.processedCount).toBe(0);
+    expect(plan.effectiveProcessingMode).toBe('raw');
+  });
+
+  it('Tiller +10% applies to raw sales, not to processed revenue', () => {
+    const parsnip = CROPS.find((c) => c.name === 'Parsnip')!;
+    const rawNoTiller = planCrop(parsnip, { ...baseProcInput, season: 'Spring' })!;
+    const rawTiller   = planCrop(parsnip, { ...baseProcInput, season: 'Spring', hasTiller: true })!;
+    expect(rawTiller.revenue).toBeGreaterThan(rawNoTiller.revenue);
+    // For keg mode, Tiller doesn't apply because there are no raw leftovers.
+    const keg         = planCrop(parsnip, { ...baseProcInput, season: 'Spring', processingMode: 'keg' })!;
+    const kegTiller   = planCrop(parsnip, { ...baseProcInput, season: 'Spring', processingMode: 'keg', hasTiller: true })!;
+    expect(kegTiller.revenue).toBeCloseTo(keg.revenue, 5);
+  });
+
+  it('limited machines queue the whole purchased batch, not one seed pattern', () => {
+    const starfruit = CROPS.find((c) => c.name === 'Starfruit')!;
+    const unlimited = planCrop(starfruit, {
+      ...baseProcInput,
+      processingMode: 'iridium-aged',
+      hasArtisan: true,
+    })!;
+    const limited = planCrop(starfruit, {
+      ...baseProcInput,
+      processingMode: 'iridium-aged',
+      kegCount: 1,
+      caskCount: 1,
+      hasArtisan: true,
+    })!;
+    expect(limited.processedCount).toBe(unlimited.processedCount);
+    expect(limited.rawLeftoverCount).toBe(0);
+    expect(limited.daysUsed).toBeGreaterThan(unlimited.daysUsed + 1000);
+    expect(limited.processingEvents.some((e) => e.kind === 'collectCask')).toBe(true);
+  });
+
+  it('one keg has finite same-day throughput for Coffee', () => {
+    const coffeeBean = CROPS.find((c) => c.name === 'Coffee Bean')!;
+    const unlimited = planCrop(coffeeBean, {
+      season: 'Spring', day: 1, money: 100000, quality: 'Regular',
+      enabledSources: ['TravelingCart'], farmingLevel: 0, fertilizerId: 'none',
+      processingMode: 'keg',
+    })!;
+    const limited = planCrop(coffeeBean, {
+      season: 'Spring', day: 1, money: 100000, quality: 'Regular',
+      enabledSources: ['TravelingCart'], farmingLevel: 0, fertilizerId: 'none',
+      processingMode: 'keg',
+      kegCount: 1,
+    })!;
+    expect(limited.processedCount).toBe(unlimited.processedCount);
+    expect(limited.daysUsed).toBeGreaterThan(unlimited.daysUsed);
   });
 });

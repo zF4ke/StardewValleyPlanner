@@ -2,6 +2,7 @@ import { FERTILIZER_BY_ID } from './fertilizers';
 import {
   FarmingLevel,
   FertilizerId,
+  ProcessingMode,
   Season,
   SEASONS,
   DAYS_PER_SEASON,
@@ -20,6 +21,12 @@ export interface TrackedCrop {
   fertilizerAmount?: number;
   seedsBought: number;
   createdAt: number;
+  // ---- v0.7 processing ----
+  processingMode?: ProcessingMode;
+  kegCount?: number;
+  caskCount?: number;
+  hasTiller?: boolean;
+  hasArtisan?: boolean;
 }
 
 export interface CurrentDay {
@@ -85,10 +92,24 @@ export function validateTrackedCrop(raw: unknown): TrackedCrop | null {
     ? Math.floor(Number(r.createdAt))
     : Date.now();
 
+  const validModes: ProcessingMode[] = ['raw', 'keg', 'silver-aged', 'gold-aged', 'iridium-aged'];
+  const processingMode: ProcessingMode | undefined = validModes.includes(r.processingMode as ProcessingMode)
+    ? (r.processingMode as ProcessingMode) : undefined;
+  const parseCount = (v: unknown): number | undefined => {
+    if (v === null || v === undefined) return undefined;
+    const n = Number(v);
+    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : undefined;
+  };
+
   return {
     id: r.id, cropName: r.cropName,
     season, day, farmingLevel, fertilizerId, fertilizerAmount,
     seedsBought, createdAt,
+    processingMode,
+    kegCount: parseCount(r.kegCount),
+    caskCount: parseCount(r.caskCount),
+    hasTiller: !!r.hasTiller,
+    hasArtisan: !!r.hasArtisan,
   };
 }
 
@@ -147,6 +168,11 @@ export interface TrackablePlanSnapshot {
   fertilizerId: FertilizerId;
   fertilizerAmount?: number;
   seedsBought: number;
+  processingMode?: ProcessingMode;
+  kegCount?: number;
+  caskCount?: number;
+  hasTiller?: boolean;
+  hasArtisan?: boolean;
 }
 
 export function createTrackedCrop(s: TrackablePlanSnapshot): TrackedCrop {
@@ -160,5 +186,10 @@ export function createTrackedCrop(s: TrackablePlanSnapshot): TrackedCrop {
     fertilizerAmount: s.fertilizerAmount,
     seedsBought: s.seedsBought,
     createdAt: Date.now(),
+    processingMode: s.processingMode,
+    kegCount: s.kegCount,
+    caskCount: s.caskCount,
+    hasTiller: s.hasTiller,
+    hasArtisan: s.hasArtisan,
   };
 }

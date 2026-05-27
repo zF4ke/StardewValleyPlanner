@@ -66,6 +66,8 @@ const EMOJI_TO_ICON: Record<string, string> = {
   '🌙': 'pixelarticons:moon',
   '📌': 'game-icons:pin',
   '📋': 'game-icons:scroll-unfurled',
+  '🛢️': 'game-icons:barrel',
+  '🍷': 'game-icons:wine-glass',
 
   // ---- Quality ----
   '⬜': 'pixelarticons:square-rounded',
@@ -89,6 +91,7 @@ const EMOJI_COLOR: Record<string, string> = {
   '💧': '#4aa3df', '🌊': '#3b86c6', '🌳': '#4f9b47', '🧪': '#8dcf5d',
   '📜': '#c79852', '☀️': '#f5c542', '🌙': '#d8def8', '⬜': '#efe8d0',
   '🥈': '#bfc8d2', '🥇': '#e3b33c', '💠': '#68c7ea',
+  '🛢️': '#9a6a3d', '🍷': '#9c2f4c',
 };
 
 interface Props {
