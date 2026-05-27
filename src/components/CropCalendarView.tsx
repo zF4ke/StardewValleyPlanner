@@ -7,7 +7,7 @@ const gold = (n: number) => `${Math.round(n).toLocaleString()}g`;
 
 const DAY_HEADERS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const SEASON_START: Record<Season, number> = { Spring: 0, Summer: 1, Fall: 2, Winter: 3 };
-const MAX_EXTENDED_CALENDAR_CELLS = 560;
+
 
 type CellKind = 'plant' | 'water' | 'harvest' | 'regrowHarvest' | 'loadKeg' | 'collectKeg' | 'loadCask' | 'collectCask';
 const KIND_LABEL: Record<CellKind, string> = {
@@ -76,7 +76,8 @@ export function CropCalendarView({ plan, season, day, todayDayOfSeason }: Props)
   const firstCalendarAbs = firstSeasonBlock * DAYS_PER_SEASON;
   const lastPlanAbs = startAbs + maxOffset;
   const fullCalendarCells = Math.ceil((lastPlanAbs - firstCalendarAbs + 1) / 7) * 7;
-  const calendarCells = Math.min(fullCalendarCells, MAX_EXTENDED_CALENDAR_CELLS);
+  const maxCalendarCells = Math.ceil((plan.maxPlanDays ?? 560) / 7) * 7;
+  const calendarCells = Math.min(fullCalendarCells, maxCalendarCells);
   const calendarIsCapped = calendarCells < fullCalendarCells;
   const processingDates = plan.processingEvents
     .filter((e) => e.kind === 'collectKeg' || e.kind === 'collectCask')
@@ -148,7 +149,7 @@ export function CropCalendarView({ plan, season, day, todayDayOfSeason }: Props)
         </div>
         {calendarIsCapped && (
           <p className="note-line">
-            Calendar preview stops after {MAX_EXTENDED_CALENDAR_CELLS} days because this machine queue runs for a very long time.
+            Calendar preview stops after {maxCalendarCells} days because this machine queue runs for a very long time.
             Processing dates below still show the full schedule summary.
           </p>
         )}

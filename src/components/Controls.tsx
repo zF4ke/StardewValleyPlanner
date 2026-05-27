@@ -23,6 +23,7 @@ interface Props {
   caskCount: number | undefined;
   hasTiller: boolean;
   hasArtisan: boolean;
+  maxYears: number;
   onChange: (patch: Partial<{
     season: Season; day: number; money: number; quality: Quality;
     farmingLevel: FarmingLevel; fertilizerId: FertilizerId;
@@ -32,6 +33,7 @@ interface Props {
     caskCount: number | undefined;
     hasTiller: boolean;
     hasArtisan: boolean;
+    maxYears: number;
   }>) => void;
 }
 
@@ -39,7 +41,7 @@ const MODES: ProcessingMode[] = ['raw', 'keg', 'silver-aged', 'gold-aged', 'irid
 
 export function Controls({
   season, day, money, farmingLevel, fertilizerId, fertilizerAmount,
-  processingMode, kegCount, caskCount, hasTiller, hasArtisan,
+  processingMode, kegCount, caskCount, hasTiller, hasArtisan, maxYears,
   onChange,
 }: Props) {
   const fertChoices = FERTILIZERS.filter((f) => !f.planterHidden);
@@ -145,6 +147,22 @@ export function Controls({
           </div>
         )}
       </div>
+
+      {isProcessing && (
+        <div className="row" style={{ marginTop: 8 }}>
+          <div className="field" style={{ minWidth: 140 }}>
+            <label>Max years (1–20)</label>
+            <input type="number" min={1} max={20} step={1}
+              value={maxYears}
+              onChange={(e) => onChange({ maxYears: clamp(parseInt(e.target.value) || 5, 1, 20) })} />
+          </div>
+          <div className="field" style={{ minWidth: 0, alignSelf: 'center', paddingBottom: 2 }}>
+            <span style={{ fontSize: '0.8rem', color: '#7a5a30', fontStyle: 'italic' }}>
+              Plans finishing later fall back to raw sales.
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="row" style={{ marginTop: 12 }}>
         <div className="field" style={{ minWidth: 0 }}>

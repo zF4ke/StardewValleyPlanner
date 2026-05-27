@@ -52,7 +52,7 @@ export function Filters({ enabled, onChange }: Props) {
     onChange(enabled.includes(id) ? enabled.filter((x) => x !== id) : [...enabled, id]);
   }
   return (
-    <section className="panel">
+    <section className="panel filters-panel">
       <div className="panel-head">
         <h2>Seed sources</h2>
         <span className="summary">{summarize(enabled)}</span>

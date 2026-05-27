@@ -64,6 +64,7 @@ export default function App() {
   const [caskCount, setCaskCount] = useState<number | undefined>(initialInputs.caskCount);
   const [hasTiller, setHasTiller] = useState(initialInputs.hasTiller);
   const [hasArtisan, setHasArtisan] = useState(initialInputs.hasArtisan);
+  const [maxYears, setMaxYears] = useState(initialInputs.maxYears ?? 5);
   const plannerWorker = useRef<Worker | null>(null);
   const plannerRequestId = useRef(0);
   const [plans, setPlans] = useState<CropPlan[]>([]);
@@ -74,10 +75,10 @@ export default function App() {
   const plannerInput = useMemo<PlannerInputs>(() => ({
       season, day, money, quality, farmingLevel,
       fertilizerId, fertilizerAmount, enabledSources: enabled,
-      processingMode, kegCount, caskCount, hasTiller, hasArtisan,
+      processingMode, kegCount, caskCount, hasTiller, hasArtisan, maxYears,
     }), [
       season, day, money, quality, farmingLevel, fertilizerId, fertilizerAmount, enabled,
-      processingMode, kegCount, caskCount, hasTiller, hasArtisan,
+      processingMode, kegCount, caskCount, hasTiller, hasArtisan, maxYears,
     ]);
 
   useEffect(() => {
@@ -229,6 +230,7 @@ export default function App() {
               caskCount={caskCount}
               hasTiller={hasTiller}
               hasArtisan={hasArtisan}
+              maxYears={maxYears}
               onChange={(p) => {
                 if (p.season !== undefined) setSeason(p.season);
                 if (p.day !== undefined) setDay(p.day);
@@ -244,6 +246,7 @@ export default function App() {
                 if (Object.prototype.hasOwnProperty.call(p, 'caskCount')) setCaskCount(p.caskCount);
                 if (p.hasTiller !== undefined) setHasTiller(p.hasTiller);
                 if (p.hasArtisan !== undefined) setHasArtisan(p.hasArtisan);
+                if (p.maxYears !== undefined) setMaxYears(p.maxYears);
               }}
             />
 

@@ -31,6 +31,7 @@ export interface PlannerInputs {
   caskCount?: number;
   hasTiller: boolean;
   hasArtisan: boolean;
+  maxYears?: number;
 }
 
 const VALID_MODES: ProcessingMode[] = ['raw', 'keg', 'silver-aged', 'gold-aged', 'iridium-aged'];
@@ -49,6 +50,7 @@ export const DEFAULT_INPUTS: PlannerInputs = {
   caskCount: undefined,
   hasTiller: false,
   hasArtisan: false,
+  maxYears: 5,
 };
 
 function clamp(n: number, lo: number, hi: number): number {
@@ -90,9 +92,10 @@ export function loadPlannerInputs(): PlannerInputs {
     const caskCount = parseOptCount(r.caskCount);
     const hasTiller = !!r.hasTiller;
     const hasArtisan = !!r.hasArtisan;
+    const maxYears = clamp(Math.floor(Number(r.maxYears) || 5), 1, 20);
     return {
       season, day, money, quality, farmingLevel, fertilizerId, fertilizerAmount, enabledSources,
-      processingMode, kegCount, caskCount, hasTiller, hasArtisan,
+      processingMode, kegCount, caskCount, hasTiller, hasArtisan, maxYears,
     };
   } catch {
     return DEFAULT_INPUTS;

@@ -593,10 +593,22 @@ footer a { color: #fff3c4; }
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 14px;
-    align-items: start;
+    align-items: stretch;
   }
   .planner-top-grid > .panel {
     margin: 0;
+    height: 100%;
+  }
+  .filters-panel {
+    display: flex;
+    flex-direction: column;
+  }
+  .filters-panel .filter-group:last-child {
+    margin-top: auto;
+  }
+  .filters-panel .filter-group:last-child .chips {
+    flex: 1;
+    justify-content: flex-end;
   }
 }
 

@@ -85,9 +85,6 @@ function teaSaplingHarvestOffsets(season: Season, day: number, speedMod = 0): nu
 
 const SEASON_INDEX: Record<Season, number> = { Spring: 0, Summer: 1, Fall: 2, Winter: 3 };
 
-/** If processing would take longer than this, we assume selling raw. */
-const MAX_PLAN_DAYS = 560; // 5 years
-
 export function offsetToDate(season: Season, day: number, offset: number): string {
   let absolute = SEASON_INDEX[season] * DAYS_PER_SEASON + (day - 1) + offset;
   const year = 1 + Math.floor(absolute / (DAYS_PER_SEASON * 4));
@@ -397,6 +394,7 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
         const inputCount = Math.max(1, crop.kegInputCount ?? 1);
         const kegMinutes = KEG_MINUTES[product];
         const caskMinutes = isCaskable(product) ? caskMinutesForMode(product, effectiveMode) : 0;
+        const maxPlanDays = Math.max(1, Math.min(20, Math.floor(input.maxYears ?? 5))) * DAYS_PER_SEASON * 4;
         const scheduled = scheduleProcessing(
           seedsBought * crop.producePerHarvest,
           inputCount,
@@ -407,7 +405,7 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
           effectiveMode === 'keg' ? undefined : input.caskCount,
         );
         const completionOffset = visibleDayFromMinute(scheduled.lastCompletionMinute);
-        if (completionOffset > MAX_PLAN_DAYS) {
+        if (completionOffset > maxPlanDays) {
           processingWarnings.push(`Processing would finish after ${offsetToDate(input.season, input.day, completionOffset)} — selling raw.`);
           effectiveMode = 'raw';
         } else {
@@ -495,6 +493,7 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
     minimumCasksRequired,
     busiestKegDayCount,
     busiestKegDayDate,
+    maxPlanDays: Math.max(1, Math.min(20, Math.floor(input.maxYears ?? 5))) * DAYS_PER_SEASON * 4,
   };
 }
 
