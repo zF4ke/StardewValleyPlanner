@@ -125,6 +125,12 @@ export interface CropPlan {
   lastFinishedDate?: string;         // pretty date of the last collection (keg or cask)
   processingWarnings: string[];      // "No keg product", "Cannot be cask aged", etc.
   processingEvents: ProcessingEvent[];
+  kegLimit?: number;                 // undefined = unlimited, 0 = no kegs
+  caskLimit?: number;                // undefined = unlimited, 0 = no casks
+  minimumKegsRequired: number;       // peak simultaneous kegs needed for the shown timing
+  minimumCasksRequired: number;      // peak simultaneous casks needed for the shown timing
+  busiestKegDayCount: number;        // load/collect keg actions on the busiest day
+  busiestKegDayDate?: string;
 }
 
 export type ProcessingEventKind = 'loadKeg' | 'collectKeg' | 'loadCask' | 'collectCask';

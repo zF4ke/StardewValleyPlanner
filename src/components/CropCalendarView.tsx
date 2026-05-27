@@ -1,11 +1,13 @@
 import { calendarEvents, offsetToDate } from '../domain/planner';
 import { FERTILIZER_BY_ID } from '../data/fertilizers';
-import { CropPlan, DAYS_PER_SEASON, Season } from '../domain/types';
+import { CropPlan, DAYS_PER_SEASON, SEASONS, Season } from '../domain/types';
 import { Icon } from './Icon';
 
 const gold = (n: number) => `${Math.round(n).toLocaleString()}g`;
 
 const DAY_HEADERS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const SEASON_START: Record<Season, number> = { Spring: 0, Summer: 1, Fall: 2, Winter: 3 };
+const MAX_EXTENDED_CALENDAR_CELLS = 420;
 
 type CellKind = 'plant' | 'water' | 'harvest' | 'regrowHarvest' | 'loadKeg' | 'collectKeg' | 'loadCask' | 'collectCask';
 const KIND_LABEL: Record<CellKind, string> = {
@@ -40,29 +42,42 @@ interface Props {
 export function CropCalendarView({ plan, season, day, todayDayOfSeason }: Props) {
   const fert = FERTILIZER_BY_ID[plan.fertilizerId];
   const events = calendarEvents(plan.crop, season, day, fert.speedMod);
-  const byDay = new Map<number, CellKind[]>();
+  const byOffset = new Map<number, CellKind[]>();
   const priority: CellKind[] = [
     'collectCask', 'collectKeg', 'harvest', 'regrowHarvest',
     'loadCask', 'loadKeg', 'plant', 'water',
   ];
-  const addKind = (calendarDay: number, kind: CellKind) => {
-    if (calendarDay < 1 || calendarDay > DAYS_PER_SEASON) return;
-    const list = byDay.get(calendarDay) ?? [];
+  const addKind = (offset: number, kind: CellKind) => {
+    if (offset < 0) return;
+    const list = byOffset.get(offset) ?? [];
     if (!list.includes(kind)) {
       list.push(kind);
       list.sort((a, b) => priority.indexOf(a) - priority.indexOf(b));
-      byDay.set(calendarDay, list);
+      byOffset.set(offset, list);
     }
   };
   for (const e of events) {
-    addKind(e.day, e.kind as CellKind);
+    addKind(e.day - day, e.kind as CellKind);
   }
   for (const e of plan.processingEvents) {
-    addKind(day + e.day, e.kind);
+    addKind(e.day, e.kind);
   }
 
   const crop = plan.crop;
   const laterHarvests = Math.max(0, plan.harvestDays.length - 1);
+  const startAbs = SEASON_START[season] * DAYS_PER_SEASON + (day - 1);
+  const maxOffset = Math.max(
+    plan.daysUsed,
+    ...plan.harvestDays,
+    ...plan.processingEvents.map((e) => e.day),
+    0
+  );
+  const firstSeasonBlock = Math.floor(startAbs / DAYS_PER_SEASON);
+  const firstCalendarAbs = firstSeasonBlock * DAYS_PER_SEASON;
+  const lastPlanAbs = startAbs + maxOffset;
+  const fullCalendarCells = Math.ceil((lastPlanAbs - firstCalendarAbs + 1) / 7) * 7;
+  const calendarCells = Math.min(fullCalendarCells, MAX_EXTENDED_CALENDAR_CELLS);
+  const calendarIsCapped = calendarCells < fullCalendarCells;
   const processingDates = plan.processingEvents
     .filter((e) => e.kind === 'collectKeg' || e.kind === 'collectCask')
     .map((e) => `${e.count} ${KIND_TITLE[e.kind].replace('Collect ', '')}: ${offsetToDate(season, day, e.day)}`);
@@ -71,35 +86,55 @@ export function CropCalendarView({ plan, season, day, todayDayOfSeason }: Props)
   return (
     <>
       <section className="drawer-section">
-        <h3>{season} calendar</h3>
-        <div className="cal-grid">
+        <h3>Plan calendar</h3>
+        <div className="cal-grid cal-grid-extended">
           {DAY_HEADERS.map((d) => (
             <div key={d} className="cal-head">{d}</div>
           ))}
-          {Array.from({ length: DAYS_PER_SEASON }, (_, i) => i + 1).map((d) => {
-            const kinds = byDay.get(d) ?? [];
+          {Array.from({ length: calendarCells }, (_, i) => {
+            const absoluteDay = firstCalendarAbs + i;
+            const block = Math.floor(absoluteDay / DAYS_PER_SEASON);
+            const blockSeason = SEASONS[block % SEASONS.length];
+            const year = Math.floor(block / SEASONS.length) + 1;
+            const d = (absoluteDay % DAYS_PER_SEASON) + 1;
+            const offset = absoluteDay - startAbs;
+            const kinds = byOffset.get(offset) ?? [];
             const kind = kinds[0];
-            const isToday = todayDayOfSeason !== undefined && d === todayDayOfSeason;
-            return (
-              <div
-                key={d}
-                className={
-                  'cal-cell'
-                  + (kind ? ` k-${kind}` : '')
-                  + (isToday ? ' is-today' : '')
-                }
-                title={kinds.length > 0 ? `${kinds.map((k) => KIND_TITLE[k]).join(' + ')} · ${season} ${d}` : `${season} ${d}`}
-              >
-                <span className="cal-day">{d}</span>
-                {kinds.length > 0 && (
-                  <span className="cal-icons">
-                    {kinds.slice(0, 3).map((k) => (
-                      <Icon key={k} emoji={KIND_LABEL[k]} className="cal-icon" />
-                    ))}
-                  </span>
-                )}
-              </div>
-            );
+            const isToday =
+              todayDayOfSeason !== undefined &&
+              block === firstSeasonBlock &&
+              d === todayDayOfSeason;
+            const isSeasonStart = d === 1;
+            const title = kinds.length > 0
+              ? `${kinds.map((k) => KIND_TITLE[k]).join(' + ')} · ${blockSeason} ${d}${year > 1 ? ` (Y${year})` : ''}`
+              : `${blockSeason} ${d}${year > 1 ? ` (Y${year})` : ''}`;
+            const seasonLabel = year > 1 ? `${blockSeason} Y${year}` : blockSeason;
+            const showSeasonLabel = i === 0 || isSeasonStart;
+          return (
+            <div
+              key={absoluteDay}
+              className={
+                'cal-cell'
+                + (offset < 0 ? ' is-before-plan' : '')
+                + (kind ? ` k-${kind}` : '')
+                + (isToday ? ' is-today' : '')
+                + (isSeasonStart ? ' is-season-start' : '')
+              }
+              title={title}
+            >
+              <span className="cal-day">{d}</span>
+              {showSeasonLabel && (
+                <span className="cal-season-tag">{seasonLabel}</span>
+              )}
+              {kinds.length > 0 && (
+                <span className="cal-icons">
+                  {kinds.slice(0, 3).map((k) => (
+                    <Icon key={k} emoji={KIND_LABEL[k]} className="cal-icon" />
+                  ))}
+                </span>
+              )}
+            </div>
+          );
           })}
         </div>
         <div className="cal-legend">
@@ -111,6 +146,12 @@ export function CropCalendarView({ plan, season, day, todayDayOfSeason }: Props)
           {plan.processingMode !== 'raw' && <span><span className="swatch k-collectKeg" /> Collect artisan goods</span>}
           {todayDayOfSeason !== undefined && <span><span className="swatch is-today-swatch" /> Today</span>}
         </div>
+        {calendarIsCapped && (
+          <p className="note-line">
+            Calendar preview stops after {MAX_EXTENDED_CALENDAR_CELLS} days because this machine queue runs for a very long time.
+            Processing dates below still show the full schedule summary.
+          </p>
+        )}
       </section>
 
       <section className="drawer-section">
@@ -133,6 +174,15 @@ export function CropCalendarView({ plan, season, day, todayDayOfSeason }: Props)
             <>
               <div><span>Processed</span><b>{plan.processedCount}{plan.kegProductLabel ? ` ${plan.kegProductLabel}` : ''}</b></div>
               <div><span>Raw leftover</span><b>{plan.rawLeftoverCount}</b></div>
+              {plan.kegLimit === undefined && plan.minimumKegsRequired > 0 && (
+                <div><span>Kegs needed</span><b>{plan.minimumKegsRequired.toLocaleString()}</b></div>
+              )}
+              {plan.caskLimit === undefined && plan.minimumCasksRequired > 0 && (
+                <div><span>Casks needed</span><b>{plan.minimumCasksRequired.toLocaleString()}</b></div>
+              )}
+              {plan.busiestKegDayDate && plan.busiestKegDayCount > 0 && (
+                <div><span>Busiest keg day</span><b>{plan.busiestKegDayDate}: {plan.busiestKegDayCount.toLocaleString()} actions</b></div>
+              )}
               <div><span>Last finished</span><b>{plan.lastFinishedDate}</b></div>
             </>
           )}
@@ -151,6 +201,13 @@ export function CropCalendarView({ plan, season, day, todayDayOfSeason }: Props)
           <div className="harvest-dates">
             <span className="kv-label">Processing dates:</span> {visibleProcessingDates.join(' · ')}
           </div>
+        )}
+        {plan.kegLimit === undefined && plan.minimumKegsRequired > 0 && plan.busiestKegDayDate && (
+          <p className="note-line">
+            Unlimited kegs means this finish date assumes at least <b>{plan.minimumKegsRequired.toLocaleString()}</b> kegs
+            and up to <b>{plan.busiestKegDayCount.toLocaleString()}</b> keg load/collect actions on {plan.busiestKegDayDate}.
+            Enter your real keg count for a slower queue that does not assume that much same-day machine work.
+          </p>
         )}
         {crop.regrowthDays && (
           <p className="note-line">

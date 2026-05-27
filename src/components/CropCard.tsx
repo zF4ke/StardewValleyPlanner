@@ -25,16 +25,6 @@ const SOURCE_LABEL: Record<SeedSource, string> = {
   Special: 'Special',
 };
 
-function metadataLines(crop: CropPlan['crop']): string[] {
-  const lines: string[] = [];
-  lines.push(`Grows in ${crop.seasons.join(', ')}`);
-  if (crop.regrowthDays) lines.push(`After first harvest, harvest again every ${crop.regrowthDays} days`);
-  if (crop.trellis) lines.push('Trellis crop (blocks tile)');
-  if (crop.seasons.length > 1) lines.push('Multi-season');
-  if (crop.producePerHarvest > 1) lines.push(`${crop.producePerHarvest} per harvest`);
-  return lines;
-}
-
 export function CropCard({ plan, rank, onSelect }: Props) {
   const { crop } = plan;
   const netClass = 'value profit' + (plan.netProfit < 0 ? ' neg' : '');
@@ -104,6 +94,16 @@ export function CropCard({ plan, rank, onSelect }: Props) {
           <div className="proc-split">
             {plan.processedCount} processed · {plan.rawLeftoverCount} raw leftover
           </div>
+          {plan.kegLimit === undefined && plan.minimumKegsRequired > 0 && (
+            <div className="proc-split">
+              Needs {plan.minimumKegsRequired.toLocaleString()} kegs for this timing
+            </div>
+          )}
+          {plan.busiestKegDayDate && plan.busiestKegDayCount > 0 && (
+            <div className="proc-split">
+              Busiest keg day: {plan.busiestKegDayCount.toLocaleString()} actions on {plan.busiestKegDayDate}
+            </div>
+          )}
           {plan.lastFinishedDate && (
             <div className="proc-split">Last finished: {plan.lastFinishedDate}</div>
           )}
@@ -144,12 +144,6 @@ export function CropCard({ plan, rank, onSelect }: Props) {
           </div>
         );
       })()}
-
-      <ul className="meta-list">
-        {metadataLines(crop).map((line) => (
-          <li key={line}>{line}</li>
-        ))}
-      </ul>
 
       {crop.notes && (
         <div className="notes">

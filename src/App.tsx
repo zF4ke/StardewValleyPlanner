@@ -8,7 +8,6 @@ import { Icon } from './components/Icon';
 import { PatchNotes } from './components/PatchNotes';
 import { TrackedCropsDrawer } from './components/TrackedCropsDrawer';
 import { CROPS } from './data/crops';
-import { FERTILIZER_BY_ID } from './data/fertilizers';
 import { CURRENT_VERSION } from './data/patchNotes';
 import { loadPlannerInputs, savePlannerInputs } from './data/plannerInputs';
 import {
@@ -105,8 +104,6 @@ export default function App() {
       processingMode, kegCount, caskCount, hasTiller, hasArtisan,
     ]
   );
-
-  const fert = FERTILIZER_BY_ID[fertilizerId];
 
   return (
     <div className="app">
@@ -205,9 +202,6 @@ export default function App() {
           <section className="panel">
             <div className="panel-head">
               <h2>Best profit from this planting</h2>
-              <span className="summary">
-                {season} {day} · Farming L{farmingLevel} · <Icon emoji={fert.emoji} /> {fert.name} · {plans.length} match{plans.length === 1 ? '' : 'es'}
-              </span>
             </div>
             {plans.length === 0 ? (
               <div className="empty">

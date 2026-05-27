@@ -391,12 +391,46 @@ describe('artisan processing — product mapping', () => {
 });
 
 describe('artisan processing — pricing', () => {
+  it('Grape Wine matches the wiki: 240/300/360/480g, Artisan 336/420/504/672g', async () => {
+    const { processedUnitPrice } = await import('../data/processing');
+    const grape = CROPS.find((c) => c.name === 'Grape')!;
+    expect(processedUnitPrice(grape, 'keg', false)).toBe(240);
+    expect(processedUnitPrice(grape, 'silver-aged', false)).toBe(300);
+    expect(processedUnitPrice(grape, 'gold-aged', false)).toBe(360);
+    expect(processedUnitPrice(grape, 'iridium-aged', false)).toBe(480);
+    expect(processedUnitPrice(grape, 'keg', true)).toBe(336);
+    expect(processedUnitPrice(grape, 'silver-aged', true)).toBe(420);
+    expect(processedUnitPrice(grape, 'gold-aged', true)).toBe(504);
+    expect(processedUnitPrice(grape, 'iridium-aged', true)).toBe(672);
+  });
+
   it('Starfruit Wine = 2250g; Iridium = 4500g; with Artisan = 6300g', async () => {
     const { processedUnitPrice } = await import('../data/processing');
     const starfruit = CROPS.find((c) => c.name === 'Starfruit')!;
     expect(processedUnitPrice(starfruit, 'keg', false)).toBe(2250);
     expect(processedUnitPrice(starfruit, 'iridium-aged', false)).toBe(4500);
     expect(processedUnitPrice(starfruit, 'iridium-aged', true)).toBe(6300);
+  });
+
+  it('Pumpkin Juice matches the wiki: 720g, or 1008g with Artisan', async () => {
+    const { processedUnitPrice } = await import('../data/processing');
+    const pumpkin = CROPS.find((c) => c.name === 'Pumpkin')!;
+    expect(processedUnitPrice(pumpkin, 'keg', false)).toBe(720);
+    expect(processedUnitPrice(pumpkin, 'keg', true)).toBe(1008);
+    expect(processedUnitPrice(pumpkin, 'iridium-aged', true)).toBe(1008);
+  });
+
+  it('Parsnip Juice uses Stardew floor-ordering: 78g, or 109g with Artisan', async () => {
+    const { processedUnitPrice } = await import('../data/processing');
+    const parsnip = CROPS.find((c) => c.name === 'Parsnip')!;
+    expect(processedUnitPrice(parsnip, 'keg', false)).toBe(78);
+    expect(processedUnitPrice(parsnip, 'keg', true)).toBe(109);
+  });
+
+  it('Keg machine times match the wiki minute values for Wine and Juice', async () => {
+    const { KEG_MINUTES } = await import('../data/processing');
+    expect(KEG_MINUTES.wine).toBe(10000);
+    expect(KEG_MINUTES.juice).toBe(6000);
   });
 
   it('Beer aging tiers: 200/250/300/400g', async () => {
@@ -528,5 +562,19 @@ describe('artisan processing — scheduling & raw leftovers', () => {
     })!;
     expect(limited.processedCount).toBe(unlimited.processedCount);
     expect(limited.daysUsed).toBeGreaterThan(unlimited.daysUsed);
+  });
+
+  it('unlimited keg plans report the peak kegs and busiest same-day work needed', () => {
+    const grape = CROPS.find((c) => c.name === 'Grape')!;
+    const plan = planCrop(grape, {
+      season: 'Fall', day: 1, money: 100000, quality: 'Regular',
+      enabledSources: ['Pierre'], farmingLevel: 0, fertilizerId: 'none',
+      processingMode: 'keg',
+    })!;
+    expect(plan.processedCount).toBe(9996);
+    expect(plan.minimumKegsRequired).toBe(4998);
+    expect(plan.busiestKegDayCount).toBe(3332);
+    expect(plan.busiestKegDayDate).toBe('Fall 17');
+    expect(plan.lastFinishedDate).toBe('Winter 4');
   });
 });

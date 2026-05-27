@@ -82,7 +82,7 @@ export function processedUnitPrice(
   const q = isCaskable(product) ? modeQuality(mode) : 'Regular';
   const qMult = QUALITY_MULT[q];
   const aMult = hasArtisan && artisanApplies(product) ? 1.4 : 1;
-  return Math.floor(base * qMult * aMult);
+  return Math.floor(base * qMult * aMult + 0.0001);
 }
 
 /** Days from a single harvest day until the product (keg + optional cask) is collected. */

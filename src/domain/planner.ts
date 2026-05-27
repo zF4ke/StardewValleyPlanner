@@ -155,6 +155,35 @@ function addProcessingEvent(
   else events.push({ day, kind, count });
 }
 
+function maxConcurrent(intervals: Array<[number, number]>): number {
+  const points: Array<[number, number]> = [];
+  for (const [start, end] of intervals) {
+    if (end <= start) continue;
+    points.push([start, 1], [end, -1]);
+  }
+  points.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  let active = 0;
+  let max = 0;
+  for (const [, delta] of points) {
+    active += delta;
+    if (active > max) max = active;
+  }
+  return max;
+}
+
+function busiestKegDay(events: ProcessingEvent[]): { day: number; count: number } | undefined {
+  const byDay = new Map<number, number>();
+  for (const e of events) {
+    if (e.kind !== 'loadKeg' && e.kind !== 'collectKeg') continue;
+    byDay.set(e.day, (byDay.get(e.day) ?? 0) + e.count);
+  }
+  let busiest: { day: number; count: number } | undefined;
+  for (const [day, count] of byDay) {
+    if (!busiest || count > busiest.count) busiest = { day, count };
+  }
+  return busiest;
+}
+
 /** Schedule keg+cask processing for the whole planted batch.
  *  `processedGoods` is output units (bottles/cups), while `consumedItems`
  *  is raw crop items consumed. Coffee therefore consumes 5 beans but produces
@@ -172,8 +201,21 @@ function scheduleProcessing(
   consumedItems: number;
   lastCompletionMinute: number;
   events: ProcessingEvent[];
+  minimumKegsRequired: number;
+  minimumCasksRequired: number;
+  busiestKegDayCount: number;
+  busiestKegDay?: number;
 } {
-  const empty = { processedGoods: 0, consumedItems: 0, lastCompletionMinute: 0, events: [] as ProcessingEvent[] };
+  const empty = {
+    processedGoods: 0,
+    consumedItems: 0,
+    lastCompletionMinute: 0,
+    events: [] as ProcessingEvent[],
+    minimumKegsRequired: 0,
+    minimumCasksRequired: 0,
+    busiestKegDayCount: 0,
+    busiestKegDay: undefined as number | undefined,
+  };
   if (kegCount === 0 || itemsPerHarvest === 0 || harvestOffsetsArr.length === 0) {
     return empty;
   }
@@ -192,6 +234,8 @@ function scheduleProcessing(
   const kegFinishHeap: number[] = []; // sorted ascending
   const kegCompletions: number[] = [];
   const events: ProcessingEvent[] = [];
+  const kegIntervals: Array<[number, number]> = [];
+  const caskIntervals: Array<[number, number]> = [];
   for (const start of batches) {
     let realStart = start;
     if (kegFinishHeap.length >= kegSlots) {
@@ -201,6 +245,7 @@ function scheduleProcessing(
     const done = realStart + kegMinutes;
     addProcessingEvent(events, 'loadKeg', realStart);
     addProcessingEvent(events, 'collectKeg', done);
+    kegIntervals.push([realStart, done]);
     kegCompletions.push(done);
     let i = kegFinishHeap.length;
     while (i > 0 && kegFinishHeap[i - 1] > done) i--;
@@ -213,7 +258,17 @@ function scheduleProcessing(
 
   if (caskMinutes > 0) {
     if (caskCount === 0) {
-      return { processedGoods, consumedItems, lastCompletionMinute, events };
+      const busiest = busiestKegDay(events);
+      return {
+        processedGoods,
+        consumedItems,
+        lastCompletionMinute,
+        events,
+        minimumKegsRequired: maxConcurrent(kegIntervals),
+        minimumCasksRequired: 0,
+        busiestKegDayCount: busiest?.count ?? 0,
+        busiestKegDay: busiest?.day,
+      };
     }
     const caskSlots = caskCount === undefined ? Infinity : caskCount;
     const caskHeap: number[] = [];
@@ -227,6 +282,7 @@ function scheduleProcessing(
       const done = realStart + caskMinutes;
       addProcessingEvent(events, 'loadCask', realStart);
       addProcessingEvent(events, 'collectCask', done);
+      caskIntervals.push([realStart, done]);
       caskCompletions.push(done);
       let i = caskHeap.length;
       while (i > 0 && caskHeap[i - 1] > done) i--;
@@ -235,7 +291,17 @@ function scheduleProcessing(
     lastCompletionMinute = caskCompletions[caskCompletions.length - 1];
   }
 
-  return { processedGoods, consumedItems, lastCompletionMinute, events };
+  const busiest = busiestKegDay(events);
+  return {
+    processedGoods,
+    consumedItems,
+    lastCompletionMinute,
+    events,
+    minimumKegsRequired: maxConcurrent(kegIntervals),
+    minimumCasksRequired: maxConcurrent(caskIntervals),
+    busiestKegDayCount: busiest?.count ?? 0,
+    busiestKegDay: busiest?.day,
+  };
 }
 
 export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
@@ -300,6 +366,10 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
   let lastFinishedOffset = offsets[offsets.length - 1];
   let kegProductLabel: string | undefined;
   let processingEvents: ProcessingEvent[] = [];
+  let minimumKegsRequired = 0;
+  let minimumCasksRequired = 0;
+  let busiestKegDayCount = 0;
+  let busiestKegDayDate: string | undefined;
 
   if (processingMode !== 'raw') {
     if (product === 'none') {
@@ -339,6 +409,12 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
         processedRevenue = processedCount * unitPrice;
         rawRevenue = rawLeftoverCount * blendedRawUnit;
         processingEvents = scheduled.events;
+        minimumKegsRequired = scheduled.minimumKegsRequired;
+        minimumCasksRequired = scheduled.minimumCasksRequired;
+        busiestKegDayCount = scheduled.busiestKegDayCount;
+        busiestKegDayDate = scheduled.busiestKegDay === undefined
+          ? undefined
+          : offsetToDate(input.season, input.day, scheduled.busiestKegDay);
         const completionOffset = visibleDayFromMinute(scheduled.lastCompletionMinute);
         if (completionOffset > lastFinishedOffset) {
           lastFinishedOffset = completionOffset;
@@ -405,6 +481,12 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
     lastFinishedDate,
     processingWarnings,
     processingEvents,
+    kegLimit: input.kegCount,
+    caskLimit: input.caskCount,
+    minimumKegsRequired,
+    minimumCasksRequired,
+    busiestKegDayCount,
+    busiestKegDayDate,
   };
 }
 
