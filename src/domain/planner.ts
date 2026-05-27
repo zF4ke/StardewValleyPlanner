@@ -85,6 +85,9 @@ function teaSaplingHarvestOffsets(season: Season, day: number, speedMod = 0): nu
 
 const SEASON_INDEX: Record<Season, number> = { Spring: 0, Summer: 1, Fall: 2, Winter: 3 };
 
+/** If processing would take longer than this, we assume selling raw. */
+const MAX_PLAN_DAYS = 560; // 5 years
+
 export function offsetToDate(season: Season, day: number, offset: number): string {
   let absolute = SEASON_INDEX[season] * DAYS_PER_SEASON + (day - 1) + offset;
   const year = 1 + Math.floor(absolute / (DAYS_PER_SEASON * 4));
@@ -403,21 +406,26 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
           input.kegCount,
           effectiveMode === 'keg' ? undefined : input.caskCount,
         );
-        processedCount = scheduled.processedGoods;
-        rawLeftoverCount = totalProduce - scheduled.consumedItems;
-        const unitPrice = processedUnitPrice(crop, effectiveMode, !!input.hasArtisan);
-        processedRevenue = processedCount * unitPrice;
-        rawRevenue = rawLeftoverCount * blendedRawUnit;
-        processingEvents = scheduled.events;
-        minimumKegsRequired = scheduled.minimumKegsRequired;
-        minimumCasksRequired = scheduled.minimumCasksRequired;
-        busiestKegDayCount = scheduled.busiestKegDayCount;
-        busiestKegDayDate = scheduled.busiestKegDay === undefined
-          ? undefined
-          : offsetToDate(input.season, input.day, scheduled.busiestKegDay);
         const completionOffset = visibleDayFromMinute(scheduled.lastCompletionMinute);
-        if (completionOffset > lastFinishedOffset) {
-          lastFinishedOffset = completionOffset;
+        if (completionOffset > MAX_PLAN_DAYS) {
+          processingWarnings.push(`Processing would finish after ${offsetToDate(input.season, input.day, completionOffset)} — selling raw.`);
+          effectiveMode = 'raw';
+        } else {
+          processedCount = scheduled.processedGoods;
+          rawLeftoverCount = totalProduce - scheduled.consumedItems;
+          const unitPrice = processedUnitPrice(crop, effectiveMode, !!input.hasArtisan);
+          processedRevenue = processedCount * unitPrice;
+          rawRevenue = rawLeftoverCount * blendedRawUnit;
+          processingEvents = scheduled.events;
+          minimumKegsRequired = scheduled.minimumKegsRequired;
+          minimumCasksRequired = scheduled.minimumCasksRequired;
+          busiestKegDayCount = scheduled.busiestKegDayCount;
+          busiestKegDayDate = scheduled.busiestKegDay === undefined
+            ? undefined
+            : offsetToDate(input.season, input.day, scheduled.busiestKegDay);
+          if (completionOffset > lastFinishedOffset) {
+            lastFinishedOffset = completionOffset;
+          }
         }
       }
       effectiveProcessingMode = effectiveMode;

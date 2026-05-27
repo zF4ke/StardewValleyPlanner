@@ -8,6 +8,15 @@ export interface PatchNote {
 /** Newest first. The first entry is treated as the current app version. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: 'v0.7.1',
+    title: 'Planner Limits & Layout',
+    bullets: [
+      'Added a 5-year time cap to processing calculations. If keg/cask queues would stretch beyond Year 5, the planner now assumes you sell raw instead of extrapolating forever.',
+      'Extended the crop calendar to display schedules up to 5 years.',
+      'On large screens, the Plan your season and Seed sources cards now sit side by side.',
+    ],
+  },
+  {
     version: 'v0.7.0',
     title: 'Artisan Processing',
     bullets: [

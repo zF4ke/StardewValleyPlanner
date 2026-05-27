@@ -7,7 +7,7 @@ const gold = (n: number) => `${Math.round(n).toLocaleString()}g`;
 
 const DAY_HEADERS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const SEASON_START: Record<Season, number> = { Spring: 0, Summer: 1, Fall: 2, Winter: 3 };
-const MAX_EXTENDED_CALENDAR_CELLS = 420;
+const MAX_EXTENDED_CALENDAR_CELLS = 560;
 
 type CellKind = 'plant' | 'water' | 'harvest' | 'regrowHarvest' | 'loadKeg' | 'collectKeg' | 'loadCask' | 'collectCask';
 const KIND_LABEL: Record<CellKind, string> = {

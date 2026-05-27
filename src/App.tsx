@@ -215,38 +215,40 @@ export default function App() {
             Pick a date, set your gold, and compare raw harvests, keg goods, and aged artisan plans.
           </p>
 
-          <Controls
-            season={season}
-            day={day}
-            money={money}
-            quality={quality}
-            farmingLevel={farmingLevel}
-            fertilizerId={fertilizerId}
-            fertilizerAmount={fertilizerAmount}
-            processingMode={processingMode}
-            kegCount={kegCount}
-            caskCount={caskCount}
-            hasTiller={hasTiller}
-            hasArtisan={hasArtisan}
-            onChange={(p) => {
-              if (p.season !== undefined) setSeason(p.season);
-              if (p.day !== undefined) setDay(p.day);
-              if (p.money !== undefined) setMoney(p.money);
-              if (p.quality !== undefined) setQuality(p.quality);
-              if (p.farmingLevel !== undefined) setFarmingLevel(p.farmingLevel);
-              if (p.fertilizerId !== undefined) setFertilizerId(p.fertilizerId);
-              if (Object.prototype.hasOwnProperty.call(p, 'fertilizerAmount')) {
-                setFertilizerAmount(p.fertilizerAmount);
-              }
-              if (p.processingMode !== undefined) setProcessingMode(p.processingMode);
-              if (Object.prototype.hasOwnProperty.call(p, 'kegCount')) setKegCount(p.kegCount);
-              if (Object.prototype.hasOwnProperty.call(p, 'caskCount')) setCaskCount(p.caskCount);
-              if (p.hasTiller !== undefined) setHasTiller(p.hasTiller);
-              if (p.hasArtisan !== undefined) setHasArtisan(p.hasArtisan);
-            }}
-          />
+          <div className="planner-top-grid">
+            <Controls
+              season={season}
+              day={day}
+              money={money}
+              quality={quality}
+              farmingLevel={farmingLevel}
+              fertilizerId={fertilizerId}
+              fertilizerAmount={fertilizerAmount}
+              processingMode={processingMode}
+              kegCount={kegCount}
+              caskCount={caskCount}
+              hasTiller={hasTiller}
+              hasArtisan={hasArtisan}
+              onChange={(p) => {
+                if (p.season !== undefined) setSeason(p.season);
+                if (p.day !== undefined) setDay(p.day);
+                if (p.money !== undefined) setMoney(p.money);
+                if (p.quality !== undefined) setQuality(p.quality);
+                if (p.farmingLevel !== undefined) setFarmingLevel(p.farmingLevel);
+                if (p.fertilizerId !== undefined) setFertilizerId(p.fertilizerId);
+                if (Object.prototype.hasOwnProperty.call(p, 'fertilizerAmount')) {
+                  setFertilizerAmount(p.fertilizerAmount);
+                }
+                if (p.processingMode !== undefined) setProcessingMode(p.processingMode);
+                if (Object.prototype.hasOwnProperty.call(p, 'kegCount')) setKegCount(p.kegCount);
+                if (Object.prototype.hasOwnProperty.call(p, 'caskCount')) setCaskCount(p.caskCount);
+                if (p.hasTiller !== undefined) setHasTiller(p.hasTiller);
+                if (p.hasArtisan !== undefined) setHasArtisan(p.hasArtisan);
+              }}
+            />
 
-          <Filters enabled={enabled} onChange={setEnabled} />
+            <Filters enabled={enabled} onChange={setEnabled} />
+          </div>
 
           <section className={'panel planner-panel' + (plannerBusy ? ' is-planning' : '')} aria-busy={plannerBusy}>
             <div className="panel-head">
