@@ -527,7 +527,7 @@ describe('artisan processing — scheduling & raw leftovers', () => {
     expect(kegTiller.revenue).toBeCloseTo(keg.revenue, 5);
   });
 
-  it('falls back to raw when processing would exceed the 5-year time cap', () => {
+  it('caps processing and sells the rest raw when the queue exceeds the time limit', () => {
     const starfruit = CROPS.find((c) => c.name === 'Starfruit')!;
     const limited = planCrop(starfruit, {
       ...baseProcInput,
@@ -536,10 +536,11 @@ describe('artisan processing — scheduling & raw leftovers', () => {
       caskCount: 1,
       hasArtisan: true,
     })!;
-    expect(limited.effectiveProcessingMode).toBe('raw');
-    expect(limited.processedCount).toBe(0);
-    expect(limited.rawLeftoverCount).toBe(limited.totalProduce);
-    expect(limited.processingWarnings.some((w) => w.toLowerCase().includes('selling raw'))).toBe(true);
+    expect(limited.effectiveProcessingMode).toBe('iridium-aged');
+    expect(limited.processedCount).toBeGreaterThan(0);
+    expect(limited.processedCount).toBeLessThan(limited.totalProduce);
+    expect(limited.rawLeftoverCount).toBe(limited.totalProduce - limited.processedCount);
+    expect(limited.processingWarnings.some((w) => w.toLowerCase().includes('rest are sold raw'))).toBe(true);
   });
 
   it('one keg has finite same-day throughput for Coffee', () => {

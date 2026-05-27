@@ -196,6 +196,7 @@ function scheduleProcessing(
   caskMinutes: number,
   kegCount: number | undefined,   // undefined = unlimited
   caskCount: number | undefined,  // undefined = unlimited
+  maxCompletionMinute?: number,
 ): {
   processedGoods: number;
   consumedItems: number;
@@ -205,6 +206,7 @@ function scheduleProcessing(
   minimumCasksRequired: number;
   busiestKegDayCount: number;
   busiestKegDay?: number;
+  wasCapped: boolean;
 } {
   const empty = {
     processedGoods: 0,
@@ -215,6 +217,7 @@ function scheduleProcessing(
     minimumCasksRequired: 0,
     busiestKegDayCount: 0,
     busiestKegDay: undefined as number | undefined,
+    wasCapped: false,
   };
   if (kegCount === 0 || itemsPerHarvest === 0 || harvestOffsetsArr.length === 0) {
     return empty;
@@ -236,6 +239,7 @@ function scheduleProcessing(
   const events: ProcessingEvent[] = [];
   const kegIntervals: Array<[number, number]> = [];
   const caskIntervals: Array<[number, number]> = [];
+  let wasCapped = false;
   for (const start of batches) {
     let realStart = start;
     if (kegFinishHeap.length >= kegSlots) {
@@ -243,6 +247,10 @@ function scheduleProcessing(
       realStart = Math.max(realStart, earliestFree);
     }
     const done = realStart + kegMinutes;
+    if (maxCompletionMinute !== undefined && done > maxCompletionMinute) {
+      wasCapped = true;
+      break;
+    }
     addProcessingEvent(events, 'loadKeg', realStart);
     addProcessingEvent(events, 'collectKeg', done);
     kegIntervals.push([realStart, done]);
@@ -252,9 +260,9 @@ function scheduleProcessing(
     kegFinishHeap.splice(i, 0, done);
   }
 
-  const processedGoods = batches.length;
-  const consumedItems = batches.length * inputCount;
-  let lastCompletionMinute = kegCompletions[kegCompletions.length - 1];
+  let processedGoods = kegCompletions.length;
+  let consumedItems = processedGoods * inputCount;
+  let lastCompletionMinute = kegCompletions[kegCompletions.length - 1] ?? 0;
 
   if (caskMinutes > 0) {
     if (caskCount === 0) {
@@ -268,6 +276,7 @@ function scheduleProcessing(
         minimumCasksRequired: 0,
         busiestKegDayCount: busiest?.count ?? 0,
         busiestKegDay: busiest?.day,
+        wasCapped,
       };
     }
     const caskSlots = caskCount === undefined ? Infinity : caskCount;
@@ -280,6 +289,10 @@ function scheduleProcessing(
         realStart = Math.max(realStart, earliestFree);
       }
       const done = realStart + caskMinutes;
+      if (maxCompletionMinute !== undefined && done > maxCompletionMinute) {
+        wasCapped = true;
+        break;
+      }
       addProcessingEvent(events, 'loadCask', realStart);
       addProcessingEvent(events, 'collectCask', done);
       caskIntervals.push([realStart, done]);
@@ -288,7 +301,9 @@ function scheduleProcessing(
       while (i > 0 && caskHeap[i - 1] > done) i--;
       caskHeap.splice(i, 0, done);
     }
-    lastCompletionMinute = caskCompletions[caskCompletions.length - 1];
+    processedGoods = caskCompletions.length;
+    consumedItems = processedGoods * inputCount;
+    lastCompletionMinute = caskCompletions[caskCompletions.length - 1] ?? 0;
   }
 
   const busiest = busiestKegDay(events);
@@ -301,6 +316,7 @@ function scheduleProcessing(
     minimumCasksRequired: maxConcurrent(caskIntervals),
     busiestKegDayCount: busiest?.count ?? 0,
     busiestKegDay: busiest?.day,
+    wasCapped,
   };
 }
 
@@ -403,27 +419,26 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
           caskMinutes,
           input.kegCount,
           effectiveMode === 'keg' ? undefined : input.caskCount,
+          maxPlanDays * MINUTES_PER_DAY,
         );
+        processedCount = scheduled.processedGoods;
+        rawLeftoverCount = totalProduce - scheduled.consumedItems;
+        const unitPrice = processedUnitPrice(crop, effectiveMode, !!input.hasArtisan);
+        processedRevenue = processedCount * unitPrice;
+        rawRevenue = rawLeftoverCount * blendedRawUnit;
+        processingEvents = scheduled.events;
+        minimumKegsRequired = scheduled.minimumKegsRequired;
+        minimumCasksRequired = scheduled.minimumCasksRequired;
+        busiestKegDayCount = scheduled.busiestKegDayCount;
+        busiestKegDayDate = scheduled.busiestKegDay === undefined
+          ? undefined
+          : offsetToDate(input.season, input.day, scheduled.busiestKegDay);
         const completionOffset = visibleDayFromMinute(scheduled.lastCompletionMinute);
-        if (completionOffset > maxPlanDays) {
-          processingWarnings.push(`Processing would finish after ${offsetToDate(input.season, input.day, completionOffset)}. Selling raw.`);
-          effectiveMode = 'raw';
-        } else {
-          processedCount = scheduled.processedGoods;
-          rawLeftoverCount = totalProduce - scheduled.consumedItems;
-          const unitPrice = processedUnitPrice(crop, effectiveMode, !!input.hasArtisan);
-          processedRevenue = processedCount * unitPrice;
-          rawRevenue = rawLeftoverCount * blendedRawUnit;
-          processingEvents = scheduled.events;
-          minimumKegsRequired = scheduled.minimumKegsRequired;
-          minimumCasksRequired = scheduled.minimumCasksRequired;
-          busiestKegDayCount = scheduled.busiestKegDayCount;
-          busiestKegDayDate = scheduled.busiestKegDay === undefined
-            ? undefined
-            : offsetToDate(input.season, input.day, scheduled.busiestKegDay);
-          if (completionOffset > lastFinishedOffset) {
-            lastFinishedOffset = completionOffset;
-          }
+        if (completionOffset > lastFinishedOffset) {
+          lastFinishedOffset = completionOffset;
+        }
+        if (scheduled.wasCapped) {
+          processingWarnings.push(`Only ${processedCount.toLocaleString()} items fit within the time cap — the rest are sold raw.`);
         }
       }
       effectiveProcessingMode = effectiveMode;
