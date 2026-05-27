@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controls } from './components/Controls';
 import { CropCalendarDrawer } from './components/CropCalendarDrawer';
 import { CropCard } from './components/CropCard';
@@ -7,9 +7,8 @@ import { FertilizerWorkshop } from './components/FertilizerWorkshop';
 import { Icon } from './components/Icon';
 import { PatchNotes } from './components/PatchNotes';
 import { TrackedCropsDrawer } from './components/TrackedCropsDrawer';
-import { CROPS } from './data/crops';
 import { CURRENT_VERSION } from './data/patchNotes';
-import { loadPlannerInputs, savePlannerInputs } from './data/plannerInputs';
+import { loadPlannerInputs, PlannerInputs, savePlannerInputs } from './data/plannerInputs';
 import {
   CurrentDay,
   TrackedCrop,
@@ -19,13 +18,19 @@ import {
   saveToday,
   saveTrackedCrops,
 } from './data/trackedCrops';
-import { rankCrops } from './domain/planner';
 import {
-  FarmingLevel, FertilizerId, ProcessingMode, Quality, Season, SeedSource,
+  CropPlan, FarmingLevel, FertilizerId, ProcessingMode, Quality, Season, SeedSource,
 } from './domain/types';
 
 type Page = 'planner' | 'workshop' | 'patch';
 type Theme = 'light' | 'dark';
+type PlannerStatus = 'settling' | 'calculating';
+
+interface PlannerWorkerResponse {
+  id: number;
+  plans?: CropPlan[];
+  error?: string;
+}
 
 export default function App() {
   const [page, setPage] = useState<Page>('planner');
@@ -43,7 +48,7 @@ export default function App() {
     try { localStorage.setItem('theme', theme); } catch { /* private mode */ }
   }, [theme]);
 
-  const initialInputs = loadPlannerInputs();
+  const [initialInputs] = useState(() => loadPlannerInputs());
   const [season, setSeason] = useState<Season>(initialInputs.season);
   const [day, setDay] = useState(initialInputs.day);
   const [money, setMoney] = useState(initialInputs.money);
@@ -59,16 +64,72 @@ export default function App() {
   const [caskCount, setCaskCount] = useState<number | undefined>(initialInputs.caskCount);
   const [hasTiller, setHasTiller] = useState(initialInputs.hasTiller);
   const [hasArtisan, setHasArtisan] = useState(initialInputs.hasArtisan);
+  const plannerWorker = useRef<Worker | null>(null);
+  const plannerRequestId = useRef(0);
+  const [plans, setPlans] = useState<CropPlan[]>([]);
+  const [plannerBusy, setPlannerBusy] = useState(true);
+  const [plannerStatus, setPlannerStatus] = useState<PlannerStatus>('calculating');
+  const [plannerError, setPlannerError] = useState<string | null>(null);
 
-  useEffect(() => {
-    savePlannerInputs({
+  const plannerInput = useMemo<PlannerInputs>(() => ({
       season, day, money, quality, farmingLevel,
       fertilizerId, fertilizerAmount, enabledSources: enabled,
       processingMode, kegCount, caskCount, hasTiller, hasArtisan,
-    });
+    }), [
+      season, day, money, quality, farmingLevel, fertilizerId, fertilizerAmount, enabled,
+      processingMode, kegCount, caskCount, hasTiller, hasArtisan,
+    ]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      savePlannerInputs(plannerInput);
+    }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [plannerInput]);
+
+  useEffect(() => {
+    const worker = new Worker(new URL('./workers/plannerWorker.ts', import.meta.url), { type: 'module' });
+    plannerWorker.current = worker;
+    const onMessage = (event: MessageEvent<PlannerWorkerResponse>) => {
+      if (event.data.id !== plannerRequestId.current) return;
+      if (event.data.error) {
+        setPlannerError(event.data.error);
+        setPlannerBusy(false);
+        return;
+      }
+      setPlans(event.data.plans ?? []);
+      setPlannerError(null);
+      setPlannerBusy(false);
+    };
+    const onError = (event: ErrorEvent) => {
+      setPlannerError(event.message || 'Planner worker failed.');
+      setPlannerBusy(false);
+    };
+    worker.addEventListener('message', onMessage);
+    worker.addEventListener('error', onError);
+    return () => {
+      worker.removeEventListener('message', onMessage);
+      worker.removeEventListener('error', onError);
+      worker.terminate();
+      if (plannerWorker.current === worker) {
+        plannerWorker.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const id = plannerRequestId.current + 1;
+    plannerRequestId.current = id;
+    setPlannerBusy(true);
+    setPlannerStatus('settling');
+    setPlannerError(null);
+    const timeout = window.setTimeout(() => {
+      setPlannerStatus('calculating');
+      plannerWorker.current?.postMessage({ id, input: plannerInput });
+    }, 350);
+    return () => window.clearTimeout(timeout);
   }, [
-    season, day, money, quality, farmingLevel, fertilizerId, fertilizerAmount, enabled,
-    processingMode, kegCount, caskCount, hasTiller, hasArtisan,
+    plannerInput,
   ]);
   const [selectedCrop, setSelectedCrop] = useState<string | null>(null);
   const [tracked, setTracked] = useState<TrackedCrop[]>(() => loadTrackedCrops());
@@ -92,18 +153,6 @@ export default function App() {
     ]);
     setFarmOpen(true);
   };
-
-  const plans = useMemo(
-    () => rankCrops(CROPS, {
-      season, day, money, quality, enabledSources: enabled,
-      farmingLevel, fertilizerId, fertilizerAmount,
-      processingMode, kegCount, caskCount, hasTiller, hasArtisan,
-    }),
-    [
-      season, day, money, quality, enabled, farmingLevel, fertilizerId, fertilizerAmount,
-      processingMode, kegCount, caskCount, hasTiller, hasArtisan,
-    ]
-  );
 
   return (
     <div className="app">
@@ -199,13 +248,25 @@ export default function App() {
 
           <Filters enabled={enabled} onChange={setEnabled} />
 
-          <section className="panel">
+          <section className={'panel planner-panel' + (plannerBusy ? ' is-planning' : '')} aria-busy={plannerBusy}>
             <div className="panel-head">
               <h2>Best profit from this planting</h2>
+              {plannerBusy && (
+                <span className="planning-chip" role="status" aria-live="polite">
+                  <span className="spinner" aria-hidden="true" />
+                  {plannerStatus === 'settling' ? 'Waiting for input' : 'Calculating'}
+                </span>
+              )}
             </div>
-            {plans.length === 0 ? (
+            {plannerError ? (
               <div className="empty">
-                No crops match. Try lowering the day, raising your gold, or enabling more seed sources above.
+                Planner failed: {plannerError}
+              </div>
+            ) : plans.length === 0 ? (
+              <div className="empty">
+                {plannerBusy
+                  ? 'Calculating crop plans...'
+                  : 'No crops match. Try lowering the day, raising your gold, or enabling more seed sources above.'}
               </div>
             ) : (
               <div className="results">
