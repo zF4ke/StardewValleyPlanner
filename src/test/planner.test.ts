@@ -364,6 +364,42 @@ describe('tracked crops', () => {
   });
 });
 
+describe('planner input persistence', () => {
+  it('defaults maxSeasons to 4 seasons', async () => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: { getItem: () => null, setItem: () => undefined },
+      configurable: true,
+    });
+    const { loadPlannerInputs } = await import('../data/plannerInputs');
+    expect(loadPlannerInputs().maxSeasons).toBe(4);
+    delete (globalThis as { localStorage?: Storage }).localStorage;
+  });
+
+  it('migrates saved maxYears to equivalent maxSeasons', async () => {
+    const storage = {
+      getItem: () => JSON.stringify({
+        season: 'Spring',
+        day: 1,
+        money: 500,
+        quality: 'Regular',
+        farmingLevel: 0,
+        fertilizerId: 'none',
+        enabledSources: ['Pierre'],
+        processingMode: 'raw',
+        maxYears: 3,
+      }),
+      setItem: () => undefined,
+    };
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: storage,
+      configurable: true,
+    });
+    const { loadPlannerInputs } = await import('../data/plannerInputs');
+    expect(loadPlannerInputs().maxSeasons).toBe(12);
+    delete (globalThis as { localStorage?: Storage }).localStorage;
+  });
+});
+
 describe('artisan processing — product mapping', () => {
   it('Wine is produced by fruits like Melon, Starfruit, Ancient Fruit', () => {
     for (const name of ['Melon', 'Starfruit', 'Ancient Fruit']) {
@@ -541,6 +577,20 @@ describe('artisan processing — scheduling & raw leftovers', () => {
     expect(limited.processedCount).toBeLessThan(limited.totalProduce);
     expect(limited.rawLeftoverCount).toBe(limited.totalProduce - limited.processedCount);
     expect(limited.processingWarnings.some((w) => w.toLowerCase().includes('rest are sold raw'))).toBe(true);
+  });
+
+  it('maxSeasons is measured in 28-day seasons, not years', () => {
+    const starfruit = CROPS.find((c) => c.name === 'Starfruit')!;
+    const limited = planCrop(starfruit, {
+      ...baseProcInput,
+      processingMode: 'keg',
+      kegCount: 1,
+      maxSeasons: 1,
+    })!;
+    expect(limited.maxPlanDays).toBe(28);
+    expect(limited.processedCount).toBe(2);
+    expect(limited.rawLeftoverCount).toBe(limited.totalProduce - 2);
+    expect(limited.lastFinishedDate).toBe('Summer 26');
   });
 
   it('one keg has finite same-day throughput for Coffee', () => {

@@ -68,12 +68,31 @@ const EMOJI_TO_ICON: Record<string, string> = {
   '📋': 'game-icons:scroll-unfurled',
   '🛢️': 'game-icons:barrel',
   '🍷': 'game-icons:wine-glass',
+  '🎒': 'game-icons:knapsack',
+  '🧮': 'game-icons:abacus',
+  '📒': 'game-icons:spell-book',
 
   // ---- Quality ----
   '⬜': 'pixelarticons:square-rounded',
   '🥈': 'game-icons:abstract-013',     // silver-ish badge
   '🥇': 'game-icons:medal',
   '💠': 'game-icons:diamonds',
+
+  // ---- Sprinklers + materials ----
+  '🚿': 'game-icons:water-splash',     // basic sprinkler
+  '🟣': 'game-icons:water-drop',       // iridium sprinkler
+  '🟥': 'game-icons:metal-bar',        // copper bar
+  '🟤': 'game-icons:ore',              // copper ore
+  '⬛': 'game-icons:metal-bar',        // iron bar
+  '⚙️': 'game-icons:ore',             // iron ore
+  '🟨': 'game-icons:gold-bar',         // gold bar
+  '🟡': 'game-icons:ore',              // gold ore
+  '🔮': 'game-icons:crystal-bars',     // iridium bar
+  '🪻': 'game-icons:ore',              // iridium ore
+  '🔷': 'game-icons:crystal-cluster',  // quartz
+  '🔥': 'game-icons:fire',             // fire quartz
+  '🔋': 'game-icons:car-battery',      // battery pack
+  '⚫': 'game-icons:coal-pile',        // coal
 };
 
 const EMOJI_COLOR: Record<string, string> = {
@@ -92,6 +111,15 @@ const EMOJI_COLOR: Record<string, string> = {
   '📜': '#c79852', '☀️': '#f5c542', '🌙': '#d8def8', '⬜': '#efe8d0',
   '🥈': '#bfc8d2', '🥇': '#e3b33c', '💠': '#68c7ea',
   '🛢️': '#9a6a3d', '🍷': '#9c2f4c',
+  '🎒': '#d77a55', '🧮': '#6cc6d9', '📒': '#e0c34a',
+  // sprinklers + materials
+  '🚿': '#8fb8d6', '🟣': '#b07ee0',
+  '🟥': '#d98c5f', '🟤': '#c47b48',
+  '⬛': '#c8c8d0', '⚙️': '#b08d57',
+  '🟨': '#ffd23f', '🟡': '#e8b53a',
+  '🔮': '#c08bff', '🪻': '#b27ee0',
+  '🔷': '#dff6ff', '🔥': '#ff7a3d',
+  '🔋': '#5fd0a0', '⚫': '#4a4a55',
 };
 
 interface Props {

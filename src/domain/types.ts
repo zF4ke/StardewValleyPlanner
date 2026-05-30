@@ -79,7 +79,7 @@ export interface PlannerInput {
   caskCount?: number;                  // undefined = unlimited, 0 = none available
   hasTiller?: boolean;                 // +10% raw crop sales
   hasArtisan?: boolean;                // +40% on most artisan goods (not Coffee)
-  maxYears?: number;                   // cap processing schedule at this many years (default 5)
+  maxSeasons?: number;                 // cap processing schedule at this many seasons (default 4)
 }
 
 export interface QualityMix {

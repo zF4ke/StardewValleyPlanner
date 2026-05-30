@@ -8,11 +8,21 @@ export interface PatchNote {
 /** Newest first. The first entry is treated as the current app version. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: 'v0.8.0',
+    title: 'Sprinkler Planner',
+    bullets: [
+      'Added Sprinkler, Quality Sprinkler, and Iridium Sprinkler planning.',
+      'Added material progress cards for what you have and what is still needed.',
+      'Added buy-cost checks for Clint materials and Krobus Iridium Sprinklers.',
+      'Cleaned up the Sprinklers page to reduce clutter.',
+    ],
+  },
+  {
     version: 'v0.7.1',
     title: 'Planner Limits & Layout',
     bullets: [
-      'Added a 5-year time cap to processing calculations. If keg/cask queues would stretch beyond Year 5, the planner now assumes you sell raw instead of extrapolating forever.',
-      'Extended the crop calendar to display schedules up to 5 years.',
+      'Added a 4-season default time cap to processing calculations. If keg/cask queues would stretch beyond that, the planner now assumes you sell raw instead of extrapolating forever.',
+      'Extended the crop calendar to display long processing schedules across seasons.',
       'On large screens, the Plan your season and Seed sources cards now sit side by side.',
     ],
   },

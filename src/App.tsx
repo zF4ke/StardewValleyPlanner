@@ -6,6 +6,7 @@ import { DEFAULT_ENABLED, Filters } from './components/Filters';
 import { FertilizerWorkshop } from './components/FertilizerWorkshop';
 import { Icon } from './components/Icon';
 import { PatchNotes } from './components/PatchNotes';
+import { SprinklerTracker } from './components/SprinklerTracker';
 import { TrackedCropsDrawer } from './components/TrackedCropsDrawer';
 import { CURRENT_VERSION } from './data/patchNotes';
 import { loadPlannerInputs, PlannerInputs, savePlannerInputs } from './data/plannerInputs';
@@ -22,7 +23,7 @@ import {
   CropPlan, FarmingLevel, FertilizerId, ProcessingMode, Quality, Season, SeedSource,
 } from './domain/types';
 
-type Page = 'planner' | 'workshop' | 'patch';
+type Page = 'planner' | 'workshop' | 'sprinklers' | 'patch';
 type Theme = 'light' | 'dark';
 type PlannerStatus = 'settling' | 'calculating';
 
@@ -64,7 +65,7 @@ export default function App() {
   const [caskCount, setCaskCount] = useState<number | undefined>(initialInputs.caskCount);
   const [hasTiller, setHasTiller] = useState(initialInputs.hasTiller);
   const [hasArtisan, setHasArtisan] = useState(initialInputs.hasArtisan);
-  const [maxYears, setMaxYears] = useState(initialInputs.maxYears ?? 5);
+  const [maxSeasons, setMaxSeasons] = useState(initialInputs.maxSeasons ?? 4);
   const plannerWorker = useRef<Worker | null>(null);
   const plannerRequestId = useRef(0);
   const [plans, setPlans] = useState<CropPlan[]>([]);
@@ -75,10 +76,10 @@ export default function App() {
   const plannerInput = useMemo<PlannerInputs>(() => ({
       season, day, money, quality, farmingLevel,
       fertilizerId, fertilizerAmount, enabledSources: enabled,
-      processingMode, kegCount, caskCount, hasTiller, hasArtisan, maxYears,
+      processingMode, kegCount, caskCount, hasTiller, hasArtisan, maxSeasons,
     }), [
       season, day, money, quality, farmingLevel, fertilizerId, fertilizerAmount, enabled,
-      processingMode, kegCount, caskCount, hasTiller, hasArtisan, maxYears,
+      processingMode, kegCount, caskCount, hasTiller, hasArtisan, maxSeasons,
     ]);
 
   useEffect(() => {
@@ -205,6 +206,11 @@ export default function App() {
         ><Icon emoji="🧪" /> Fertilizer Workshop</button>
         <button
           className="nav-tab"
+          data-active={page === 'sprinklers'}
+          onClick={() => setPage('sprinklers')}
+        ><Icon emoji="💧" /> Sprinklers</button>
+        <button
+          className="nav-tab"
           data-active={page === 'patch'}
           onClick={() => setPage('patch')}
         ><Icon emoji="📜" /> Patch Notes</button>
@@ -229,7 +235,7 @@ export default function App() {
             caskCount={caskCount}
             hasTiller={hasTiller}
             hasArtisan={hasArtisan}
-            maxYears={maxYears}
+            maxSeasons={maxSeasons}
             onChange={(p) => {
               if (p.season !== undefined) setSeason(p.season);
               if (p.day !== undefined) setDay(p.day);
@@ -245,7 +251,7 @@ export default function App() {
               if (Object.prototype.hasOwnProperty.call(p, 'caskCount')) setCaskCount(p.caskCount);
               if (p.hasTiller !== undefined) setHasTiller(p.hasTiller);
               if (p.hasArtisan !== undefined) setHasArtisan(p.hasArtisan);
-              if (p.maxYears !== undefined) setMaxYears(p.maxYears);
+              if (p.maxSeasons !== undefined) setMaxSeasons(p.maxSeasons);
             }}
           />
 
@@ -302,6 +308,14 @@ export default function App() {
       )}
 
       {page === 'workshop' && <FertilizerWorkshop />}
+      {page === 'sprinklers' && (
+        <>
+          <p className="subtitle">
+            Pick a sprinkler tier, set a goal, and see exactly what's left to mine or buy.
+          </p>
+          <SprinklerTracker />
+        </>
+      )}
       {page === 'patch' && <PatchNotes />}
 
       <footer>

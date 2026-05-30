@@ -23,7 +23,7 @@ interface Props {
   caskCount: number | undefined;
   hasTiller: boolean;
   hasArtisan: boolean;
-  maxYears: number;
+  maxSeasons: number;
   onChange: (patch: Partial<{
     season: Season; day: number; money: number; quality: Quality;
     farmingLevel: FarmingLevel; fertilizerId: FertilizerId;
@@ -33,7 +33,7 @@ interface Props {
     caskCount: number | undefined;
     hasTiller: boolean;
     hasArtisan: boolean;
-    maxYears: number;
+    maxSeasons: number;
   }>) => void;
 }
 
@@ -41,7 +41,7 @@ const MODES: ProcessingMode[] = ['raw', 'keg', 'silver-aged', 'gold-aged', 'irid
 
 export function Controls({
   season, day, money, farmingLevel, fertilizerId, fertilizerAmount,
-  processingMode, kegCount, caskCount, hasTiller, hasArtisan, maxYears,
+  processingMode, kegCount, caskCount, hasTiller, hasArtisan, maxSeasons,
   onChange,
 }: Props) {
   const fertChoices = FERTILIZERS.filter((f) => !f.planterHidden);
@@ -151,10 +151,10 @@ export function Controls({
       {isProcessing && (
         <div className="row" style={{ marginTop: 8 }}>
           <div className="field" style={{ minWidth: 140 }}>
-            <label>Max years</label>
+            <label>Max seasons</label>
             <input type="number" min={1} step={1}
-              value={maxYears}
-              onChange={(e) => onChange({ maxYears: Math.max(1, parseInt(e.target.value) || 5) })} />
+              value={maxSeasons}
+              onChange={(e) => onChange({ maxSeasons: Math.max(1, parseInt(e.target.value) || 4) })} />
           </div>
         </div>
       )}
