@@ -29,6 +29,8 @@ The **crop planner** ranks crops by profit for the day, gold, and shops you've g
 
 The **fertilizer workshop** compares buying vs. crafting and picks the cheaper one.
 
+The **sprinkler planner** tracks Basic, Quality, and Iridium Sprinklers, showing what you can craft now and what materials or Clint purchases are still missing.
+
 The **My Farm** drawer tracks crop plans you planted, remembers the current game day, and shows what is ready next.
 
 Click any crop for a Stardew-style 28-day calendar.
@@ -84,6 +86,14 @@ Pick a fertilizer and a quantity. The workshop compares:
 
 It highlights the cheapest path, lists the ingredient totals, and shows leftover overflow when a recipe outputs in batches. Non-gold trades (e.g. Cinder Shards) are listed separately, never compared on price.
 
+## 💧 Sprinkler Planner
+
+Choose a sprinkler tier, set your goal, and enter the materials you already have. The planner shows progress toward the goal, how many sprinklers are craftable from current stock, and material cards for what is still needed.
+
+The Clint cost only prices ore and coal you still need to buy after owned bars, ore, and coal are counted. Iridium Sprinklers also show the Krobus Friday buyout option.
+
+There is also a daily log for recording mining or crafting progress over time. Log entries update your totals automatically and can be removed later.
+
 ## 📌 My Farm
 
 Track a crop plan from its calendar view and it lands in **My Farm**. The drawer keeps a local list of planted crops, lets you move the current day forward or backward, and marks upcoming harvests and artisan collection dates on each crop's mini calendar.
@@ -97,7 +107,8 @@ src/
   data/         crops, fertilizers, processing, patch notes, saved state
   domain/       planner math + types
   components/   Controls, CropCard, CropCalendarDrawer, CropCalendarView,
-                TrackedCropsDrawer, FertilizerWorkshop, PatchNotes, Filters
+                TrackedCropsDrawer, FertilizerWorkshop, SprinklerTracker,
+                PatchNotes, Filters
   styles/       parchment + pixel theme
   test/         vitest specs
 ```
@@ -107,10 +118,10 @@ local component state plus browser storage power the app.
 
 ## 🌱 Data
 
-All crop and fertilizer numbers come from the
+All crop, fertilizer, and sprinkler numbers come from the
 [Stardew Valley Wiki](https://stardewvalleywiki.com/). The probability formula
 is the one from the game source. If a value here is wrong, it's a one-line fix
-in `src/data/crops.ts` or `src/data/fertilizers.ts` — PRs welcome.
+in `src/data/crops.ts`, `src/data/fertilizers.ts`, or `src/data/sprinklerState.ts` — PRs welcome.
 
 ## 🛠️ Contributing
 
