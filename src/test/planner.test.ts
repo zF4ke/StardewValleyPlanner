@@ -96,6 +96,79 @@ describe('money math', () => {
     expect(plan.netProfit).toBe(plan.finalMoney - 100);
   });
 
+  it('max tiles caps the initial seed purchase', () => {
+    const plan = planCrop(PARSNIP, { ...baseInput, money: 1000, maxTiles: 10 })!;
+    expect(plan.seedsBought).toBe(10);
+    expect(plan.totalSeedPurchases).toBe(10);
+    expect(plan.seedSpend).toBe(200);
+    expect(plan.tileLimitHit).toBe(true);
+  });
+
+  it('blank max tiles preserves unlimited seed purchase behavior', () => {
+    const plan = planCrop(PARSNIP, { ...baseInput, money: 1000 })!;
+    expect(plan.seedsBought).toBe(50);
+    expect(plan.maxTiles).toBeUndefined();
+  });
+
+  it('zero max tiles produces no plan', () => {
+    const plan = planCrop(PARSNIP, { ...baseInput, money: 1000, maxTiles: 0 });
+    expect(plan).toBeNull();
+  });
+
+  it('replants the same crop on freed tiles while another cycle fits', () => {
+    const plan = planCrop(PARSNIP, {
+      ...baseInput,
+      money: 1000,
+      maxTiles: 10,
+      allowReplanting: true,
+    })!;
+    expect(plan.plantingCount).toBe(6);
+    expect(plan.plantingOffsets).toEqual([0, 4, 8, 12, 16, 20]);
+    expect(plan.harvestDays).toEqual([4, 8, 12, 16, 20, 24]);
+    expect(plan.totalSeedPurchases).toBe(60);
+    expect(plan.seedSpend).toBe(1200);
+  });
+
+  it('replanting buys fewer seeds if harvest gold cannot refill every tile', () => {
+    const poorCrop: Crop = { ...PARSNIP, seedCost: 100, sellPrice: 80 };
+    const plan = planCrop(poorCrop, {
+      ...baseInput,
+      money: 150,
+      maxTiles: 10,
+      allowReplanting: true,
+    })!;
+    expect(plan.plantingCount).toBeGreaterThan(1);
+    expect(plan.totalSeedPurchases).toBeGreaterThan(1);
+    expect(plan.totalSeedPurchases).toBeLessThan(plan.plantingCount * 10);
+  });
+
+  it('replanting consumes limited fertilizer across earliest plantings first', () => {
+    const plan = planCrop(PARSNIP, {
+      ...baseInput,
+      money: 1000,
+      maxTiles: 10,
+      allowReplanting: true,
+      fertilizerId: 'quality',
+      fertilizerAmount: 12,
+    })!;
+    expect(plan.totalSeedPurchases).toBe(60);
+    expect(plan.fertilizedSeeds).toBe(12);
+    expect(plan.unfertilizedSeeds).toBe(48);
+    expect(plan.fertilizerRequired).toBe(60);
+  });
+
+  it('regrowth crops do not rebuy seeds after every regrowth harvest', () => {
+    const plan = planCrop(CORN, {
+      season: 'Summer', day: 1, money: 10000, quality: 'Regular',
+      enabledSources: ['Pierre'], farmingLevel: 0, fertilizerId: 'none',
+      maxTiles: 10, allowReplanting: true,
+    })!;
+    expect(plan.seedsBought).toBe(10);
+    expect(plan.plantingCount).toBe(1);
+    expect(plan.plantingOffsets).toEqual([0]);
+    expect(plan.harvestDays.length).toBeGreaterThan(1);
+  });
+
   it('quality multipliers floor-apply to unit sell price', () => {
     expect(qualitySellPrice(PARSNIP, 'Regular')).toBe(35);
     expect(qualitySellPrice(PARSNIP, 'Silver')).toBe(Math.floor(35 * 1.25));
@@ -396,6 +469,32 @@ describe('planner input persistence', () => {
     });
     const { loadPlannerInputs } = await import('../data/plannerInputs');
     expect(loadPlannerInputs().maxSeasons).toBe(12);
+    delete (globalThis as { localStorage?: Storage }).localStorage;
+  });
+
+  it('loads max tiles and replanting preferences', async () => {
+    const storage = {
+      getItem: () => JSON.stringify({
+        season: 'Spring',
+        day: 1,
+        money: 500,
+        quality: 'Regular',
+        farmingLevel: 0,
+        fertilizerId: 'none',
+        enabledSources: ['Pierre'],
+        processingMode: 'raw',
+        maxTiles: 32,
+        allowReplanting: true,
+      }),
+      setItem: () => undefined,
+    };
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: storage,
+      configurable: true,
+    });
+    const { loadPlannerInputs } = await import('../data/plannerInputs');
+    expect(loadPlannerInputs().maxTiles).toBe(32);
+    expect(loadPlannerInputs().allowReplanting).toBe(true);
     delete (globalThis as { localStorage?: Storage }).localStorage;
   });
 });

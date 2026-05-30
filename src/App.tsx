@@ -66,6 +66,8 @@ export default function App() {
   const [hasTiller, setHasTiller] = useState(initialInputs.hasTiller);
   const [hasArtisan, setHasArtisan] = useState(initialInputs.hasArtisan);
   const [maxSeasons, setMaxSeasons] = useState(initialInputs.maxSeasons ?? 4);
+  const [maxTiles, setMaxTiles] = useState<number | undefined>(initialInputs.maxTiles);
+  const [allowReplanting, setAllowReplanting] = useState(initialInputs.allowReplanting);
   const plannerWorker = useRef<Worker | null>(null);
   const plannerRequestId = useRef(0);
   const [plans, setPlans] = useState<CropPlan[]>([]);
@@ -77,9 +79,11 @@ export default function App() {
       season, day, money, quality, farmingLevel,
       fertilizerId, fertilizerAmount, enabledSources: enabled,
       processingMode, kegCount, caskCount, hasTiller, hasArtisan, maxSeasons,
+      maxTiles, allowReplanting,
     }), [
       season, day, money, quality, farmingLevel, fertilizerId, fertilizerAmount, enabled,
       processingMode, kegCount, caskCount, hasTiller, hasArtisan, maxSeasons,
+      maxTiles, allowReplanting,
     ]);
 
   useEffect(() => {
@@ -149,6 +153,9 @@ export default function App() {
       createTrackedCrop({
         cropName,
         season, day, farmingLevel, fertilizerId, fertilizerAmount,
+        startingMoney: money,
+        maxTiles,
+        allowReplanting,
         seedsBought: plan.seedsBought,
         processingMode, kegCount, caskCount, hasTiller, hasArtisan,
       }),
@@ -236,6 +243,8 @@ export default function App() {
             hasTiller={hasTiller}
             hasArtisan={hasArtisan}
             maxSeasons={maxSeasons}
+            maxTiles={maxTiles}
+            allowReplanting={allowReplanting}
             onChange={(p) => {
               if (p.season !== undefined) setSeason(p.season);
               if (p.day !== undefined) setDay(p.day);
@@ -252,6 +261,8 @@ export default function App() {
               if (p.hasTiller !== undefined) setHasTiller(p.hasTiller);
               if (p.hasArtisan !== undefined) setHasArtisan(p.hasArtisan);
               if (p.maxSeasons !== undefined) setMaxSeasons(p.maxSeasons);
+              if (Object.prototype.hasOwnProperty.call(p, 'maxTiles')) setMaxTiles(p.maxTiles);
+              if (p.allowReplanting !== undefined) setAllowReplanting(p.allowReplanting);
             }}
           />
 

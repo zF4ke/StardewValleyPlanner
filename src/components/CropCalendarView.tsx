@@ -41,7 +41,9 @@ interface Props {
 
 export function CropCalendarView({ plan, season, day, todayDayOfSeason }: Props) {
   const fert = FERTILIZER_BY_ID[plan.fertilizerId];
-  const events = calendarEvents(plan.crop, season, day, fert.speedMod);
+  const events = plan.plantingOffsets.length > 1 && !plan.crop.regrowthDays
+    ? replantingCalendarEvents(plan, day)
+    : calendarEvents(plan.crop, season, day, fert.speedMod);
   const byOffset = new Map<number, CellKind[]>();
   const priority: CellKind[] = [
     'collectCask', 'collectKeg', 'harvest', 'regrowHarvest',
@@ -163,6 +165,8 @@ export function CropCalendarView({ plan, season, day, todayDayOfSeason }: Props)
           {crop.regrowthDays && <div><span>After first harvest</span><b>every {crop.regrowthDays} days</b></div>}
           <div><span>Per harvest</span><b>{crop.producePerHarvest}</b></div>
           <div><span>Seeds bought</span><b>{plan.seedsBought}</b></div>
+          {plan.maxTiles !== undefined && <div><span>Max tiles</span><b>{plan.maxTiles}</b></div>}
+          {plan.allowReplanting && <div><span>Plantings</span><b>{plan.plantingCount}</b></div>}
           <div><span>Seed spend</span><b>{gold(plan.seedSpend)}</b></div>
           <div>
             <span>Total harvests</span>
@@ -191,6 +195,11 @@ export function CropCalendarView({ plan, season, day, todayDayOfSeason }: Props)
         <div className="harvest-dates">
           <span className="kv-label">Harvest dates:</span> {plan.harvestDates.join(' · ')}
         </div>
+        {plan.plantingDates.length > 1 && (
+          <div className="harvest-dates">
+            <span className="kv-label">Planting dates:</span> {plan.plantingDates.join(' · ')}
+          </div>
+        )}
         {plan.processingWarnings.length > 0 && (
           <div className="harvest-dates" style={{ marginTop: 4 }}>
             {plan.processingWarnings.map((w) => (
@@ -232,6 +241,20 @@ export function CropCalendarView({ plan, season, day, todayDayOfSeason }: Props)
       )}
     </>
   );
+}
+
+function replantingCalendarEvents(plan: CropPlan, startDay: number) {
+  const events: Array<{ day: number; kind: CellKind }> = [];
+  plan.plantingOffsets.forEach((plantOffset, i) => {
+    const harvestOffset = plan.harvestDays[i];
+    if (harvestOffset === undefined) return;
+    events.push({ day: startDay + plantOffset, kind: 'plant' });
+    for (let offset = plantOffset + 1; offset < harvestOffset; offset++) {
+      events.push({ day: startDay + offset, kind: 'water' });
+    }
+    events.push({ day: startDay + harvestOffset, kind: 'harvest' });
+  });
+  return events;
 }
 
 function compactList(items: string[]): string[] {

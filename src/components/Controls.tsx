@@ -24,6 +24,8 @@ interface Props {
   hasTiller: boolean;
   hasArtisan: boolean;
   maxSeasons: number;
+  maxTiles: number | undefined;
+  allowReplanting: boolean;
   onChange: (patch: Partial<{
     season: Season; day: number; money: number; quality: Quality;
     farmingLevel: FarmingLevel; fertilizerId: FertilizerId;
@@ -34,6 +36,8 @@ interface Props {
     hasTiller: boolean;
     hasArtisan: boolean;
     maxSeasons: number;
+    maxTiles: number | undefined;
+    allowReplanting: boolean;
   }>) => void;
 }
 
@@ -42,6 +46,7 @@ const MODES: ProcessingMode[] = ['raw', 'keg', 'silver-aged', 'gold-aged', 'irid
 export function Controls({
   season, day, money, farmingLevel, fertilizerId, fertilizerAmount,
   processingMode, kegCount, caskCount, hasTiller, hasArtisan, maxSeasons,
+  maxTiles, allowReplanting,
   onChange,
 }: Props) {
   const fertChoices = FERTILIZERS.filter((f) => !f.planterHidden);
@@ -81,6 +86,15 @@ export function Controls({
           <label>Gold available</label>
           <input type="number" min={0} step={50} value={money}
             onChange={(e) => onChange({ money: Math.max(0, parseInt(e.target.value) || 0) })} />
+        </div>
+        <div className="field">
+          <label>Max tiles (blank = unlimited)</label>
+          <input type="number" min={0} step={1}
+            value={maxTiles ?? ''} placeholder="Unlimited"
+            onChange={(e) => {
+              const v = e.target.value.trim();
+              onChange({ maxTiles: v === '' ? undefined : Math.max(0, parseInt(v) || 0) });
+            }} />
         </div>
         <div className="field">
           <label>Farming level (0–14)</label>
@@ -175,6 +189,12 @@ export function Controls({
               onClick={() => onChange({ hasArtisan: !hasArtisan })}
               title="+40% on artisan goods (not Coffee)"
             >Artisan</button>
+            <button
+              className="chip"
+              data-active={allowReplanting}
+              onClick={() => onChange({ allowReplanting: !allowReplanting })}
+              title="Rebuy and replant the same crop on freed tiles when there is enough gold"
+            >Replanting</button>
           </div>
         </div>
       </div>

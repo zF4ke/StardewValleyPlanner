@@ -32,6 +32,8 @@ export interface PlannerInputs {
   hasTiller: boolean;
   hasArtisan: boolean;
   maxSeasons?: number;
+  maxTiles?: number;
+  allowReplanting: boolean;
 }
 
 const VALID_MODES: ProcessingMode[] = ['raw', 'keg', 'silver-aged', 'gold-aged', 'iridium-aged'];
@@ -51,6 +53,8 @@ export const DEFAULT_INPUTS: PlannerInputs = {
   hasTiller: false,
   hasArtisan: false,
   maxSeasons: 4,
+  maxTiles: undefined,
+  allowReplanting: false,
 };
 
 function clamp(n: number, lo: number, hi: number): number {
@@ -92,6 +96,11 @@ export function loadPlannerInputs(): PlannerInputs {
     const caskCount = parseOptCount(r.caskCount);
     const hasTiller = !!r.hasTiller;
     const hasArtisan = !!r.hasArtisan;
+    const parseOptPositive = (v: unknown): number | undefined => {
+      if (v === null || v === undefined || v === '') return undefined;
+      const n = Number(v);
+      return Number.isFinite(n) && n >= 0 ? Math.floor(n) : undefined;
+    };
     const savedMaxSeasons = Number(r.maxSeasons);
     const savedMaxYears = Number(r.maxYears);
     const maxSeasons = Number.isFinite(savedMaxSeasons) && savedMaxSeasons > 0
@@ -99,9 +108,12 @@ export function loadPlannerInputs(): PlannerInputs {
       : Number.isFinite(savedMaxYears) && savedMaxYears > 0
         ? Math.floor(savedMaxYears) * 4
         : 4;
+    const maxTiles = parseOptPositive(r.maxTiles);
+    const allowReplanting = !!r.allowReplanting;
     return {
       season, day, money, quality, farmingLevel, fertilizerId, fertilizerAmount, enabledSources,
       processingMode, kegCount, caskCount, hasTiller, hasArtisan, maxSeasons,
+      maxTiles, allowReplanting,
     };
   } catch {
     return DEFAULT_INPUTS;

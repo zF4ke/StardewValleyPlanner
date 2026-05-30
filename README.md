@@ -26,6 +26,7 @@ it tells you which planting plan leaves you richest, including optional keg and 
 ## ✨ What's inside
 
 The **crop planner** ranks crops by profit for the day, gold, and shops you've got — quality odds, fertilizer, Speed-Gro, regrowth, kegs, casks, and profession bonuses all baked in.
+You can also cap plans by farm tiles and allow same-crop replanting when harvests free up space.
 
 The **fertilizer workshop** compares buying vs. crafting and picks the cheaper one.
 
@@ -55,6 +56,8 @@ Crops are ranked on a single metric: **net profit from the selected planting**, 
 
 - The selected season + day (the planting day itself doesn't count as a growth day).
 - The seeds you can afford with the gold you have.
+- The max crop tiles you have available, if you set a tile limit.
+- Optional same-crop replanting, using harvest income to buy more seeds when another cycle still fits.
 - Whether the crop regrows, and how many regrowth cycles fit in the remaining valid days.
 - Expected sale value, computed from the canonical Stardew quality formula:
 

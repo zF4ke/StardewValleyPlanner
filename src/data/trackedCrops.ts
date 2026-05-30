@@ -20,6 +20,9 @@ export interface TrackedCrop {
   fertilizerId: FertilizerId;
   fertilizerAmount?: number;
   seedsBought: number;
+  startingMoney?: number;
+  maxTiles?: number;
+  allowReplanting?: boolean;
   createdAt: number;
   // ---- v0.7 processing ----
   processingMode?: ProcessingMode;
@@ -88,6 +91,13 @@ export function validateTrackedCrop(raw: unknown): TrackedCrop | null {
     fertilizerAmount = Number.isFinite(n) && n >= 0 ? Math.floor(n) : undefined;
   }
   const seedsBought = Math.max(0, Math.floor(Number(r.seedsBought) || 0));
+  const parseCount = (v: unknown): number | undefined => {
+    if (v === null || v === undefined) return undefined;
+    const n = Number(v);
+    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : undefined;
+  };
+  const startingMoney = parseCount(r.startingMoney);
+  const maxTiles = parseCount(r.maxTiles);
   const createdAt = Number.isFinite(Number(r.createdAt))
     ? Math.floor(Number(r.createdAt))
     : Date.now();
@@ -95,16 +105,10 @@ export function validateTrackedCrop(raw: unknown): TrackedCrop | null {
   const validModes: ProcessingMode[] = ['raw', 'keg', 'silver-aged', 'gold-aged', 'iridium-aged'];
   const processingMode: ProcessingMode | undefined = validModes.includes(r.processingMode as ProcessingMode)
     ? (r.processingMode as ProcessingMode) : undefined;
-  const parseCount = (v: unknown): number | undefined => {
-    if (v === null || v === undefined) return undefined;
-    const n = Number(v);
-    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : undefined;
-  };
-
   return {
     id: r.id, cropName: r.cropName,
     season, day, farmingLevel, fertilizerId, fertilizerAmount,
-    seedsBought, createdAt,
+    seedsBought, startingMoney, maxTiles, allowReplanting: !!r.allowReplanting, createdAt,
     processingMode,
     kegCount: parseCount(r.kegCount),
     caskCount: parseCount(r.caskCount),
@@ -168,6 +172,9 @@ export interface TrackablePlanSnapshot {
   fertilizerId: FertilizerId;
   fertilizerAmount?: number;
   seedsBought: number;
+  startingMoney?: number;
+  maxTiles?: number;
+  allowReplanting?: boolean;
   processingMode?: ProcessingMode;
   kegCount?: number;
   caskCount?: number;
@@ -185,6 +192,9 @@ export function createTrackedCrop(s: TrackablePlanSnapshot): TrackedCrop {
     fertilizerId: s.fertilizerId,
     fertilizerAmount: s.fertilizerAmount,
     seedsBought: s.seedsBought,
+    startingMoney: s.startingMoney,
+    maxTiles: s.maxTiles,
+    allowReplanting: s.allowReplanting,
     createdAt: Date.now(),
     processingMode: s.processingMode,
     kegCount: s.kegCount,

@@ -42,7 +42,8 @@ function getStatus(t: TrackedCrop, today: CurrentDay): StatusInfo {
     return { text: `Planting in ${days} day${days === 1 ? '' : 's'} — ${formatDate(fromAbsolute(plantedAbs))}.`, tone: 'pending' };
   }
   const plan = planFromTracked(t);
-  const actions = offsets.map((offset) => ({ offset, label: 'Harvest' }));
+  const harvestOffsetsForPlan = plan?.harvestDays ?? offsets;
+  const actions = harvestOffsetsForPlan.map((offset) => ({ offset, label: 'Harvest' }));
   for (const e of plan?.processingEvents ?? []) {
     if (e.kind === 'collectKeg') actions.push({ offset: e.day, label: 'Collect keg product' });
     if (e.kind === 'collectCask') actions.push({ offset: e.day, label: 'Collect aged product' });
@@ -63,7 +64,7 @@ function getStatus(t: TrackedCrop, today: CurrentDay): StatusInfo {
 function planFromTracked(t: TrackedCrop): CropPlan | null {
   const crop = CROPS.find((c) => c.name === t.cropName);
   if (!crop || crop.seedCost <= 0) return null;
-  const money = t.seedsBought * crop.seedCost;
+  const money = t.startingMoney ?? t.seedsBought * crop.seedCost;
   return planCrop(crop, {
     season: t.season, day: t.day, money,
     quality: 'Regular', enabledSources: [crop.source],
@@ -75,6 +76,8 @@ function planFromTracked(t: TrackedCrop): CropPlan | null {
     caskCount: t.caskCount,
     hasTiller: t.hasTiller,
     hasArtisan: t.hasArtisan,
+    maxTiles: t.maxTiles,
+    allowReplanting: t.allowReplanting,
   });
 }
 

@@ -80,6 +80,8 @@ export interface PlannerInput {
   hasTiller?: boolean;                 // +10% raw crop sales
   hasArtisan?: boolean;                // +40% on most artisan goods (not Coffee)
   maxSeasons?: number;                 // cap processing schedule at this many seasons (default 4)
+  maxTiles?: number;                   // undefined = unlimited crop tiles
+  allowReplanting?: boolean;           // repeat same crop on freed tiles when possible
 }
 
 export interface QualityMix {
@@ -133,6 +135,13 @@ export interface CropPlan {
   busiestKegDayCount: number;        // load/collect keg actions on the busiest day
   busiestKegDayDate?: string;
   maxPlanDays: number;                // calendar + processing cap in days
+  maxTiles?: number;                  // undefined = unlimited crop tiles
+  allowReplanting: boolean;
+  plantingCount: number;
+  plantingDates: string[];
+  plantingOffsets: number[];
+  totalSeedPurchases: number;
+  tileLimitHit: boolean;
 }
 
 export type ProcessingEventKind = 'loadKeg' | 'collectKeg' | 'loadCask' | 'collectCask';

@@ -184,14 +184,18 @@ function busiestKegDay(events: ProcessingEvent[]): { day: number; count: number 
   return busiest;
 }
 
+interface HarvestBatch {
+  offset: number;
+  items: number;
+}
+
 /** Schedule keg+cask processing for the whole planted batch.
  *  `processedGoods` is output units (bottles/cups), while `consumedItems`
  *  is raw crop items consumed. Coffee therefore consumes 5 beans but produces
  *  1 Coffee. Limited kegs/casks are FIFO with minute-level durations. */
 function scheduleProcessing(
-  itemsPerHarvest: number,
+  harvestBatches: HarvestBatch[],
   inputCount: number,
-  harvestOffsetsArr: number[],
   kegMinutes: number,
   caskMinutes: number,
   kegCount: number | undefined,   // undefined = unlimited
@@ -219,15 +223,15 @@ function scheduleProcessing(
     busiestKegDay: undefined as number | undefined,
     wasCapped: false,
   };
-  if (kegCount === 0 || itemsPerHarvest === 0 || harvestOffsetsArr.length === 0) {
+  if (kegCount === 0 || harvestBatches.length === 0) {
     return empty;
   }
   const batches: number[] = []; // available start minute per output batch
   let leftoverInputs = 0;
-  for (const h of harvestOffsetsArr) {
-    leftoverInputs += itemsPerHarvest;
+  for (const harvest of [...harvestBatches].sort((a, b) => a.offset - b.offset)) {
+    leftoverInputs += harvest.items;
     while (leftoverInputs >= inputCount) {
-      batches.push(h * MINUTES_PER_DAY);
+      batches.push(harvest.offset * MINUTES_PER_DAY);
       leftoverInputs -= inputCount;
     }
   }
@@ -327,27 +331,11 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
   if (offsets.length === 0) return null;
 
   const seedCost = Math.max(0, crop.seedCost);
-  const seedsBought = seedCost > 0 ? Math.floor(input.money / seedCost) : 0;
-  if (seedsBought <= 0) return null;
+  if (seedCost <= 0) return null;
 
-  // Limited fertilizer split:
-  const wantFertilizerPerSeed = fert && fert.id !== 'none';
-  const fertilizerRequired = wantFertilizerPerSeed ? seedsBought : 0;
-  let fertilizedSeeds = 0;
-  let unfertilizedSeeds = seedsBought;
-  if (wantFertilizerPerSeed) {
-    const cap = input.fertilizerAmount;
-    if (cap === undefined) {
-      fertilizedSeeds = seedsBought;
-      unfertilizedSeeds = 0;
-    } else {
-      fertilizedSeeds = Math.min(seedsBought, Math.max(0, Math.floor(cap)));
-      unfertilizedSeeds = seedsBought - fertilizedSeeds;
-    }
-  }
-
-  const seedSpend = seedsBought * seedCost;
-  const moneyAfterBuying = input.money - seedSpend;
+  const maxTiles = input.maxTiles === undefined ? undefined : Math.max(0, Math.floor(input.maxTiles));
+  const tileCap = maxTiles ?? Number.POSITIVE_INFINITY;
+  if (tileCap <= 0) return null;
 
   const fertLvl = (fert?.qualityLevel ?? 0) as 0 | 1 | 2 | 3;
   const mixFert: QualityMix = fertLvl > 0
@@ -358,14 +346,106 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
   const unitFert = unitMixValue(crop, mixFert);
   const unitBare = unitMixValue(crop, mixBare);
 
-  const harvestsPerSeed = offsets.length;
-  const producePerSeed = harvestsPerSeed * crop.producePerHarvest;
-  const totalProduce = seedsBought * producePerSeed;
-
   // ---- Raw-sale EV per item ----
   const tillerMult = input.hasTiller ? 1.1 : 1;
-  const rawFert = fertilizedSeeds * producePerSeed * unitFert * tillerMult;
-  const rawBare = unfertilizedSeeds * producePerSeed * unitBare * tillerMult;
+  const wantFertilizerPerSeed = fert && fert.id !== 'none';
+  let fertilizerLeft = input.fertilizerAmount === undefined
+    ? undefined
+    : Math.max(0, Math.floor(input.fertilizerAmount));
+  const plantingBatches: Array<{
+    offset: number;
+    seeds: number;
+    harvestOffsets: number[];
+    fertilizedSeeds: number;
+    unfertilizedSeeds: number;
+  }> = [];
+  let totalSeedPurchases = 0;
+  let seedSpend = 0;
+  let tileLimitHit = false;
+
+  const assignFertilizer = (seeds: number) => {
+    if (!wantFertilizerPerSeed) return { fertilized: 0, bare: seeds };
+    if (fertilizerLeft === undefined) return { fertilized: seeds, bare: 0 };
+    const fertilized = Math.min(seeds, fertilizerLeft);
+    fertilizerLeft -= fertilized;
+    return { fertilized, bare: seeds - fertilized };
+  };
+
+  const addPlanting = (offset: number, seeds: number, harvestOffsetsArr: number[]) => {
+    const split = assignFertilizer(seeds);
+    plantingBatches.push({
+      offset,
+      seeds,
+      harvestOffsets: harvestOffsetsArr,
+      fertilizedSeeds: split.fertilized,
+      unfertilizedSeeds: split.bare,
+    });
+    totalSeedPurchases += seeds;
+    seedSpend += seeds * seedCost;
+  };
+
+  const canReplant =
+    !!input.allowReplanting &&
+    !crop.regrowthDays &&
+    crop.name !== 'Tea Sapling';
+
+  if (canReplant) {
+    const firstGrowth = speedGrowthDays(crop.growthDays, speedMod);
+    const validWindow = remainingValidDays(input.season, input.day, crop.seasons);
+    let cashForSeeds = input.money;
+    let plantOffset = 0;
+    while (plantOffset + firstGrowth <= validWindow) {
+      const affordable = Math.floor(cashForSeeds / seedCost);
+      const seeds = Math.min(tileCap, affordable);
+      if (seeds <= 0) break;
+      if (maxTiles !== undefined && affordable > maxTiles) tileLimitHit = true;
+      cashForSeeds -= seeds * seedCost;
+      const harvestOffset = plantOffset + firstGrowth;
+      addPlanting(plantOffset, seeds, [harvestOffset]);
+
+      const lastBatch = plantingBatches[plantingBatches.length - 1];
+      cashForSeeds += (
+        lastBatch.fertilizedSeeds * crop.producePerHarvest * unitFert * tillerMult +
+        lastBatch.unfertilizedSeeds * crop.producePerHarvest * unitBare * tillerMult
+      );
+      plantOffset = harvestOffset;
+    }
+  } else {
+    const affordable = Math.floor(input.money / seedCost);
+    const seeds = Math.min(tileCap, affordable);
+    if (seeds <= 0) return null;
+    if (maxTiles !== undefined && affordable > maxTiles) tileLimitHit = true;
+    addPlanting(0, seeds, offsets);
+  }
+
+  if (totalSeedPurchases <= 0) return null;
+
+  const seedsBought = totalSeedPurchases;
+  const moneyAfterBuying = input.money - seedSpend;
+  const harvestBatches: HarvestBatch[] = [];
+  for (const batch of plantingBatches) {
+    for (const harvestOffset of batch.harvestOffsets) {
+      harvestBatches.push({
+        offset: harvestOffset,
+        items: batch.seeds * crop.producePerHarvest,
+      });
+    }
+  }
+  harvestBatches.sort((a, b) => a.offset - b.offset);
+
+  const fertilizedSeeds = plantingBatches.reduce((sum, b) => sum + b.fertilizedSeeds, 0);
+  const unfertilizedSeeds = plantingBatches.reduce((sum, b) => sum + b.unfertilizedSeeds, 0);
+  const fertilizerRequired = wantFertilizerPerSeed ? totalSeedPurchases : 0;
+  const totalProduce = harvestBatches.reduce((sum, h) => sum + h.items, 0);
+
+  const rawFert = plantingBatches.reduce(
+    (sum, b) => sum + b.fertilizedSeeds * b.harvestOffsets.length * crop.producePerHarvest * unitFert * tillerMult,
+    0
+  );
+  const rawBare = plantingBatches.reduce(
+    (sum, b) => sum + b.unfertilizedSeeds * b.harvestOffsets.length * crop.producePerHarvest * unitBare * tillerMult,
+    0
+  );
   const rawSaleRevenueAllRaw = rawFert + rawBare;
   const blendedRawUnit = totalProduce > 0 ? rawSaleRevenueAllRaw / totalProduce : 0;
 
@@ -379,7 +459,7 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
   let rawLeftoverCount = totalProduce;
   let processedRevenue = 0;
   let rawRevenue = rawSaleRevenueAllRaw;
-  let lastFinishedOffset = offsets[offsets.length - 1];
+  let lastFinishedOffset = harvestBatches[harvestBatches.length - 1]?.offset ?? offsets[offsets.length - 1];
   let kegProductLabel: string | undefined;
   let processingEvents: ProcessingEvent[] = [];
   let minimumKegsRequired = 0;
@@ -412,9 +492,8 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
         const caskMinutes = isCaskable(product) ? caskMinutesForMode(product, effectiveMode) : 0;
         const maxPlanDays = Math.max(1, Math.floor(input.maxSeasons ?? 4)) * DAYS_PER_SEASON;
         const scheduled = scheduleProcessing(
-          seedsBought * crop.producePerHarvest,
+          harvestBatches,
           inputCount,
-          offsets,
           kegMinutes,
           caskMinutes,
           input.kegCount,
@@ -451,7 +530,9 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
   const daysUsed = lastFinishedOffset;
   const profitPerDay = daysUsed > 0 ? netProfit / daysUsed : 0;
 
-  const harvestDates = offsets.map((o) => offsetToDate(input.season, input.day, o));
+  const allHarvestOffsets = harvestBatches.map((h) => h.offset);
+  const plantingOffsets = plantingBatches.map((b) => b.offset);
+  const harvestDates = allHarvestOffsets.map((o) => offsetToDate(input.season, input.day, o));
   const lastFinishedDate = offsetToDate(input.season, input.day, lastFinishedOffset);
 
   const warnings: string[] = [];
@@ -472,7 +553,7 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
     seedsBought,
     seedSpend,
     moneyAfterBuying,
-    harvestDays: offsets,
+    harvestDays: allHarvestOffsets,
     harvestDates,
     firstHarvestDate: harvestDates[0],
     lastHarvestDate: harvestDates[harvestDates.length - 1],
@@ -509,6 +590,13 @@ export function planCrop(crop: Crop, input: PlannerInput): CropPlan | null {
     busiestKegDayCount,
     busiestKegDayDate,
     maxPlanDays: Math.max(1, Math.floor(input.maxSeasons ?? 4)) * DAYS_PER_SEASON,
+    maxTiles,
+    allowReplanting: !!input.allowReplanting,
+    plantingCount: plantingBatches.length,
+    plantingDates: plantingOffsets.map((o) => offsetToDate(input.season, input.day, o)),
+    plantingOffsets,
+    totalSeedPurchases,
+    tileLimitHit,
   };
 }
 

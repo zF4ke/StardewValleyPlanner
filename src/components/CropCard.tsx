@@ -68,7 +68,9 @@ export function CropCard({ plan, rank, onSelect }: Props) {
       </div>
 
       <div className="secondary-stats">
-        <div><span>Seeds bought</span><b>{plan.seedsBought}</b></div>
+        <div><span>{plan.allowReplanting ? 'Total seeds' : 'Seeds bought'}</span><b>{plan.seedsBought}</b></div>
+        {plan.maxTiles !== undefined && <div><span>Max tiles</span><b>{plan.maxTiles}</b></div>}
+        {plan.allowReplanting && <div><span>Plantings</span><b>{plan.plantingCount}</b></div>}
         <div><span>Seed spend</span><b>{gold(plan.seedSpend)}</b></div>
         <div>
           <span>Total harvests</span>
@@ -144,6 +146,19 @@ export function CropCard({ plan, rank, onSelect }: Props) {
           </div>
         );
       })()}
+
+      {(plan.allowReplanting || plan.tileLimitHit) && (
+        <div className="notes">
+          <span className="notes-label">Planting</span>
+          <span>
+            {plan.allowReplanting
+              ? `${plan.plantingCount} planting${plan.plantingCount === 1 ? '' : 's'}: ${plan.plantingDates.join(', ')}`
+              : plan.tileLimitHit
+                ? 'Limited by max tiles.'
+                : 'Tile limit active.'}
+          </span>
+        </div>
+      )}
 
       {crop.notes && (
         <div className="notes">

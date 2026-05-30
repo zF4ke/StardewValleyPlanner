@@ -8,6 +8,15 @@ export interface PatchNote {
 /** Newest first. The first entry is treated as the current app version. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: 'v0.9.0',
+    title: 'Tile Limits & Replanting',
+    bullets: [
+      'Added a Max tiles input so crop plans can match your available sprinkler coverage.',
+      'Added optional same-crop replanting when harvests free up tiles and there is enough gold for more seeds.',
+      'Crop cards and calendars now show multiple planting dates when replanting is active.',
+    ],
+  },
+  {
     version: 'v0.8.0',
     title: 'Sprinkler Planner',
     bullets: [
